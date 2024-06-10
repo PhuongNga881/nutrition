@@ -14,6 +14,10 @@ import { MealRecipe } from 'src/entity/MealRecipe';
 import { userConditions } from 'src/entity/UserConditions';
 import { UserGoals } from 'src/entity/UserGoals';
 import { Conditions } from 'src/entity/Conditions';
+import { WeightPerServing } from 'src/entity/WeightPerServing';
+import { Flavonoids } from 'src/entity/flavonoids';
+import { Properties } from 'src/entity/properties';
+import { Roles } from 'src/entity/roles';
 @Module({
   controllers: [AuthController],
   providers: [AuthService],
@@ -28,6 +32,10 @@ import { Conditions } from 'src/entity/Conditions';
       userConditions,
       UserGoals,
       Conditions,
+      WeightPerServing,
+      Flavonoids,
+      Properties,
+      Roles,
     ]),
     ConfigModule,
     //BullModule.registerQueue({ name: 'send-mail' }),

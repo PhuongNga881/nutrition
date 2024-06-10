@@ -3,9 +3,11 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Users } from './Users';
+import { userConditions } from './UserConditions';
 @Entity('usergoals')
 export class UserGoals {
   @PrimaryGeneratedColumn({ name: 'ID' })
@@ -36,8 +38,9 @@ export class UserGoals {
   BMI: number;
   @Column({ name: 'Description', nullable: true })
   Description: string;
-
+  @OneToMany(() => userConditions, (usercondition) => usercondition.userGoals)
+  userCondition: userConditions[];
   @ManyToOne(() => Users, (user) => user.goals, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'UserID', referencedColumnName: 'id' })
+  @JoinColumn({ name: 'userId', referencedColumnName: 'id' })
   User: Users;
 }

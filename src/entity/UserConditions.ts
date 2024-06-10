@@ -7,24 +7,27 @@ import {
 } from 'typeorm';
 import { Users } from './Users';
 import { Conditions } from './Conditions';
+import { UserGoals } from './UserGoals';
 @Entity('userConditions')
 export class userConditions {
   @PrimaryGeneratedColumn({ name: 'ID' })
   ID: number;
 
-  @Column({ name: 'userID' })
-  userID: number;
+  @Column({ name: 'user_goal_id' })
+  userGoalId: number;
 
-  @Column({ name: 'ConditionID' })
-  ConditionID: number;
+  @Column({ name: 'condition_id' })
+  conditionId: number;
 
-  @ManyToOne(() => Users, (user) => user.userCondition, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userID', referencedColumnName: 'id' })
-  user: Users;
+  @ManyToOne(() => UserGoals, (user) => user.userCondition, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'user_goal_id', referencedColumnName: 'id' })
+  userGoals: UserGoals;
 
   @ManyToOne(() => Conditions, (condition) => condition.userCondition, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'ConditionID', referencedColumnName: 'id' })
+  @JoinColumn({ name: 'condition_id', referencedColumnName: 'id' })
   condition: Conditions;
 }

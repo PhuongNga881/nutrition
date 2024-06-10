@@ -13,13 +13,17 @@ import {
   UserGoalsDeleteDTO,
   UserGoalsFilterDTO,
   UsersGoalsUpdate,
+  UsersGoalsUpdateByUser,
   UsersGoalsUpdateCondition,
 } from 'src/userGoals/dto/userGoals.dto';
+import { userConditions } from 'src/entity/UserConditions';
 @Injectable()
 export class UserGoalsService {
   constructor(
     @InjectRepository(UserGoals)
     private userGoalsRepository: Repository<UserGoals>,
+    @InjectRepository(userConditions)
+    private userConditionsRepository: Repository<userConditions>,
     @InjectRepository(Nutrients)
     private nutrientsRepository: Repository<Nutrients>,
     @InjectRepository(WeightPerServing)
@@ -76,7 +80,7 @@ export class UserGoalsService {
       (sex ? 5 : -161);
     const heightByM = height / 100;
     const BMI = weight / heightByM ** 2;
-    const TEE = BMR ? BMI + BMI * 0.1 : 0;
+    const TEE = BMR ? BMR + BMR * 0.1 : 0;
     let TDEE;
     if (exercise) {
       if (exercise === EXERCISE.LITTLE_OR_NO_EXERCISE)
@@ -91,7 +95,7 @@ export class UserGoalsService {
     return { BMI, TEE, TDEE, BMR };
   }
   async createOne(input: UserGoalsCreateDTO) {
-    const { conditionNames } = input;
+    const { conditionIds } = input;
     // const BMR =
     //   (weight ? weight * 10 : 0) +
     //   (height ? height * 6.25 : 0) -
@@ -113,25 +117,44 @@ export class UserGoalsService {
     // }
     let { BMR, BMI, TEE, TDEE } = await this.calculator(input);
     let nutrients = await this.createDataNutrients(input, TDEE);
-    for (const name of conditionNames) {
-      ({ nutrients, TDEE } = await this.adjustNutrientsForCondition(
-        nutrients,
-        name,
-        TDEE,
-      ));
+    if (conditionIds) {
+      if (conditionIds.length > 0) {
+        for (const id of conditionIds) {
+          console.log(id);
+          ({ nutrients, TDEE } = await this.adjustNutrientsForCondition(
+            nutrients,
+            id,
+            TDEE,
+          ));
+        }
+      }
     }
     const userGoal = await this.userGoalsRepository.save(
       this.userGoalsRepository.create({ ...input, BMR, BMI, TEE, TDEE }),
     );
     const { id } = userGoal;
-
-    await this.nutrientsRepository.save(
-      this.nutrientsRepository.create({
-        ...nutrients,
-        objectId: id,
-        type: Type.USER_GOALS,
-      }),
-    );
+    for (const nutrient of nutrients) {
+      await this.nutrientsRepository.save(
+        this.nutrientsRepository.create({
+          ...nutrient,
+          objectId: id,
+          type: Type.USER_GOALS,
+        }),
+      );
+    }
+    const { id: userGoalId } = userGoal;
+    if (conditionIds) {
+      if (conditionIds.length > 0) {
+        for (const conditionId of conditionIds) {
+          await this.userConditionsRepository.save(
+            this.userConditionsRepository.create({
+              userGoalId,
+              conditionId,
+            }),
+          );
+        }
+      }
+    }
     return userGoal;
   }
   async createDataNutrients(input: UserGoalsCreateDTO, TDEE: number) {
@@ -630,94 +653,29 @@ export class UserGoalsService {
       percentOfDailyNeeds: 100,
     };
     nutrient.push(Phosphorus);
+    console.log(nutrient);
     return nutrient;
   }
 
-  //   async getData() {
-  //     const ingredients = await this.ingredientsRepository.find({
-  //       select: ['code', 'id'],
-  //       where: { id: MoreThan(722) },
-  //     });
-  //     const apiKey = this.configService.get<string>('API_KEY');
-  //     if (ingredients.length > 0) {
-  //       for (let i = 0; i < 150; i++) {
-  //         const { code, id: ingredientId } = ingredients[i];
-  //         console.log(code);
-  //         const url = `https://api.spoonacular.com/food/ingredients/${code}/information?apiKey=${apiKey}&amount=100&unit=grams`;
-  //         const data = await axios.get(url);
-  //         const { id, original, originalName, image, nutrition } = data?.data;
-  //         await this.ingredientsRepository
-  //           .createQueryBuilder()
-  //           .update(Ingredients)
-  //           .set({ original, originalName, image })
-  //           .where('code = :id', { id })
-  //           .execute();
-  //         const { nutrients, caloricBreakdown, weightPerServing } = nutrition;
-  //         if (nutrients.length > 0) {
-  //           for (const nutrient of nutrients) {
-  //             await this.nutrientsRepository.save(
-  //               this.nutrientsRepository.create({
-  //                 ...nutrient,
-  //                 objectId: ingredientId,
-  //                 type: Type.INGREDIENTS,
-  //               }),
-  //             );
-  //           }
-  //         }
-  //         console.log(caloricBreakdown);
-  //         if (caloricBreakdown) {
-  //           await this.caloricBreakdownRepository.save(
-  //             this.caloricBreakdownRepository.create({
-  //               ...caloricBreakdown,
-  //               objectId: ingredientId,
-  //               type: Type.INGREDIENTS,
-  //             }),
-  //           );
-  //         }
-  //         console.log(weightPerServing);
-  //         if (weightPerServing) {
-  //           await this.weightPerServingRepository.save(
-  //             this.weightPerServingRepository.create({
-  //               ...weightPerServing,
-  //               objectId: ingredientId,
-  //               type: Type.INGREDIENTS,
-  //             }),
-  //           );
-  //         }
-  //         const requestPoints = data.headers['x-api-quota-request'];
-  //         const totalPointsUsed = data.headers['x-api-quota-used'];
-
-  //         console.log(`Points used by the request: ${requestPoints}`);
-  //         console.log(`Total points used today: ${totalPointsUsed}`);
-  //       }
-  //     }
-  // const apiKey = this.configService.get<string>('API_KEY');
-  // const url = `https://api.spoonacular.com/food/ingredients/9266/information?apiKey=${apiKey}`;
-  // const data = await axios.get(url);
-  // return data?.data;
-  // }
-  //   async createMany(note: NotesDTO[], workspaceId: number, accountId: number) {
-  //     console.log(workspaceId);
-  //     const Notes = note.map((n) => ({
-  //       ...n,
-  //       workspaceId: workspaceId,
-  //     }));
-  //     const checkId = this.checkIdAccount(accountId, workspaceId);
-  //     if (!checkId)
-  //       return new ResponseData(
-  //         [],
-  //         HttpStatus.BAD_REQUEST,
-  //         HttpMessage.BAD_REQUEST,
-  //       );
-
-  //     const noteSave = await this.noteRepository
-  //       .createQueryBuilder()
-  //       .insert()
-  //       .into(notes)
-  //       .values(Notes)
-  //       .execute();
-  //     return new ResponseData(noteSave, HttpStatus.CREATED, HttpMessage.SUCCESS);
-  //   }
+  async changeByUser(userId, input: UsersGoalsUpdateByUser) {
+    const { changedNutrientName, newAmount } = input;
+    const userGoal = await this.userGoalsRepository.findOne({
+      where: { userId },
+    });
+    if (!userGoal)
+      throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
+    const { id: userGoalId, TDEE } = userGoal;
+    const nutrient = await this.nutrientsRepository.find({
+      where: { objectId: userGoalId, type: Type.USER_GOALS },
+    });
+    await this.updateChangeByUser(
+      userGoalId,
+      nutrient,
+      changedNutrientName,
+      newAmount,
+      TDEE,
+    );
+  }
   async updateChangeByUser(
     id: number,
     nutrient,
@@ -819,7 +777,7 @@ export class UserGoalsService {
     );
   }
   async updateCondition(id: number, input: UsersGoalsUpdateCondition) {
-    const { conditionNames } = input;
+    const { conditionIds } = input;
     const userGoal = await this.userGoalsRepository.findOne({
       where: { id },
     });
@@ -832,10 +790,10 @@ export class UserGoalsService {
     const { BMR, BMI, TEE } = await this.calculator(input);
     let { TDEE } = await this.calculator(input);
     let nutrients = await this.createDataNutrients(input, TDEE);
-    for (const name of conditionNames) {
+    for (const id of conditionIds) {
       ({ nutrients, TDEE } = await this.adjustNutrientsForCondition(
         nutrients,
-        name,
+        id,
         TDEE,
       ));
     }
@@ -859,11 +817,12 @@ export class UserGoalsService {
   }
   async adjustNutrientsForCondition(
     nutrients: any[],
-    conditionName: any,
+    id: any,
     TDEE: any,
   ): Promise<{ nutrients: any[]; TDEE: any }> {
-    switch (conditionName.toLowerCase()) {
-      case 'diabetes':
+    console.log('id condition: ', id);
+    switch (id) {
+      case 5:
         let energy: number;
         let totalFiber: number;
         nutrients.map((nutrient) => {
@@ -896,9 +855,10 @@ export class UserGoalsService {
           }
           return nutrient;
         });
-
+        console.log('chay den day ');
+        console.log(nutrients);
         return { nutrients, TDEE };
-      case 'heart disease':
+      case 6:
         const heartFatReductionFactor = 0.7;
         const heartCholesterolReductionFactor = 0.7;
         const heartSodiumReductionFactor = 0.5;
@@ -941,7 +901,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 'kidney disease':
+      case 7:
         const kidneyProteinReductionFactor = 0.7;
         const kidneyPotassiumReductionFactor = 0.7;
         const kidneyPhosphorusReductionFactor = 0.7;
@@ -970,7 +930,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 'liver disease':
+      case 8:
         let liverProtein = 0;
         const proteinReductionFactorLiver = 0.8;
         const fatReductionFactor = 0.7;
@@ -996,7 +956,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 'cancer':
+      case 9:
         const cancerCalorieIncreaseFactor = 1.15;
         const extraCalories = TDEE * (cancerCalorieIncreaseFactor - 1);
         const extraProteinGrams = extraCalories / 4;
@@ -1009,7 +969,7 @@ export class UserGoalsService {
         });
 
         return { nutrients, TDEE };
-      case 'osteoporosis':
+      case 10:
         const calciumIncrease = 1200;
         const vitaminDIncrease = 800;
         let proteinAdjustment = 0;
@@ -1033,7 +993,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 'celiac':
+      case 11:
         const calciumRecommendedIntake = 1000; // Khuyến nghị lượng canxi
         const vitaminDRecommendedIntake = 600; // Khuyến nghị lượng vitamin D
         let proteinAdjustmentCeliac = 0;
@@ -1073,7 +1033,7 @@ export class UserGoalsService {
         });
 
         return { nutrients, TDEE };
-      case 'gout':
+      case 12:
         const proteinReductionGout = 0.2; // Giảm 20% lượng protein
         let proteinReductionAmountGout = 0;
 
@@ -1093,7 +1053,7 @@ export class UserGoalsService {
         });
 
         return { nutrients, TDEE };
-      case 'anemia':
+      case 13:
         const ironRecommendedIntake = 18;
         const vitaminCRecommendedIntake = 75;
 
@@ -1114,7 +1074,7 @@ export class UserGoalsService {
         });
 
         return { nutrients, TDEE };
-      case 'rheumatoid arthritis':
+      case 14:
         // Các điều chỉnh dinh dưỡng dựa trên khuyến nghị của các tổ chức y tế
         const calciumRecommendedIntakeRA = 1200; // Khuyến nghị lượng canxi
         const vitaminDRecommendedIntakeRA = 800; // Khuyến nghị lượng vitamin D
@@ -1153,7 +1113,7 @@ export class UserGoalsService {
         });
 
         return { nutrients, TDEE };
-      case 'inflammatory bowel disease - ibd':
+      case 15:
         const vitaminDRecommendedIntakeIBD = 800;
         const ironRecommendedIntakeIBD = 18;
 
@@ -1174,7 +1134,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'copd':
+      case 16:
         const vitaminCRecommendedIntakeCOPD = 90;
         const vitaminERecommendedIntakeCOPD = 15;
 
@@ -1195,7 +1155,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'parkinson':
+      case 17:
         const fiberRecommendedIntakeParkinson = 30;
         const vitaminB6RecommendedIntakeParkinson = 1.7;
 
@@ -1216,7 +1176,8 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'alzheimer':
+      case 18:
+        console.log('chay den day');
         const vitaminERecommendedIntakeAlzheimer = 15;
         const vitaminCRecommendedIntakeAlzheimer = 90;
         const omega3AdditionAlzheimer = 1000;
@@ -1254,7 +1215,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'peptic ulcer disease':
+      case 19:
         const vitaminARecommendedIntakePUD = 900;
         const zincRecommendedIntakePUD = 11;
 
@@ -1274,7 +1235,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 'pregnancy first trimester':
+      case 20:
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Folate') {
             nutrient.amount = Math.max(600, nutrient.amount);
@@ -1316,7 +1277,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'pregnancy second trimester':
+      case 21:
         const folateRecommendedIntakeSecondTrimester = 600;
         const ironRecommendedIntakeSecondTrimester = 27;
         const calciumRecommendedIntakeSecondTrimester = 1000;
@@ -1375,7 +1336,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'pregnancy third trimester':
+      case 22:
         TDEE += 452;
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Folate') {
@@ -1417,7 +1378,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 'lactation':
+      case 23:
         TDEE += 500;
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Folate') {
@@ -1466,7 +1427,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'hepatitis b':
+      case 24:
         const vitaminERecommendedIntakeHepB = 15;
         const vitaminCRecommendedIntakeHepB = 90;
 
@@ -1487,7 +1448,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'hepatitis c':
+      case 25:
         const vitaminERecommendedIntakeHepC = 15;
         const vitaminCRecommendedIntakeHepC = 90;
 
@@ -1508,7 +1469,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'cirrhosis':
+      case 26:
         const vitaminKRecommendedIntakeCirrhosis = 120;
         const vitaminDRecommendedIntakeCirrhosis = 800;
 
@@ -1529,7 +1490,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'hyperthyroidism':
+      case 27:
         const calciumRecommendedIntakeHyperthyroid = 1200;
         const vitaminDRecommendedIntakeHyperthyroid = 800;
 
@@ -1550,7 +1511,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'multiple sclerosis - ms':
+      case 28:
         const vitaminDRecommendedIntakeMS = 800;
         const omega3AdditionMS = 1000;
 
@@ -1581,7 +1542,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'pancreatitis':
+      case 29:
         const vitaminARecommendedIntakePancreatitis = 900;
         const vitaminCRecommendedIntakePancreatitis = 90;
 
@@ -1602,7 +1563,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 'osteoporosis':
+      case 30:
         const calciumRecommendedIntakeOsteoporosis = 1200;
         const vitaminDRecommendedIntakeOsteoporosis = 800;
 

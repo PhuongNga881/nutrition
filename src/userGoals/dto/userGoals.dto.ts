@@ -1,4 +1,4 @@
-import { CONDITION, EXERCISE } from 'src/enum/type.enum';
+import { EXERCISE } from 'src/enum/type.enum';
 
 export class UserGoalsCreateDTO {
   userId: number;
@@ -12,15 +12,14 @@ export class UserGoalsCreateDTO {
   height: number;
   weight: number;
   exercise: EXERCISE;
-  conditionNames: ConditionName[];
+  conditionIds: number[];
 }
 export class UsersGoalsUpdate extends UserGoalsCreateDTO {}
-export class UsersGoalsUpdateCondition extends UserGoalsCreateDTO {
-  conditionNames: ConditionName[];
+export class UsersGoalsUpdateByUser {
+  changedNutrientName: string;
+  newAmount: number;
 }
-export class ConditionName {
-  Name: CONDITION;
-}
+export class UsersGoalsUpdateCondition extends UserGoalsCreateDTO {}
 export class UserGoalsFilterDTO {
   userId: number;
   exercise: string;

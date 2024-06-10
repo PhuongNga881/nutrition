@@ -15,14 +15,19 @@ import {
 import { DishIngredients } from 'src/entity/DishIngredients';
 import { Nutrients } from 'src/entity/Nutrients';
 import { Type } from 'src/enum/type.enum';
+import { WeightPerServing } from 'src/entity/WeightPerServing';
+import { Properties } from 'src/entity/properties';
 @Injectable()
 export class DishedService {
   constructor(
     @InjectRepository(Dished)
     private dishRepository: Repository<Dished>,
-
+    @InjectRepository(WeightPerServing)
+    private weightPerServingsRepository: Repository<WeightPerServing>,
     @InjectRepository(Nutrients)
     private nutrientsRepository: Repository<Nutrients>,
+    @InjectRepository(Properties)
+    private propertiesRepository: Repository<Properties>,
     @InjectRepository(Ingredients)
     private ingredientsRepository: Repository<Ingredients>,
     @InjectRepository(DishIngredients)
@@ -30,10 +35,11 @@ export class DishedService {
   ) {}
 
   async findOne(id: number) {
-    const ingredient = await this.dishRepository
+    const dish = await this.dishRepository
       .createQueryBuilder('i')
       .leftJoin('i.dishIngredients', 'dishIngredient')
       .leftJoinAndSelect('dishIngredient.Ingredient', 'Id')
+      .leftJoinAndSelect('i.userID', 'u')
       .leftJoinAndMapMany(
         'i.nutrients',
         Nutrients,
@@ -43,15 +49,15 @@ export class DishedService {
       )
       .where('i.id = :id ', { id: id })
       .getOne();
-    if (!ingredient)
+    if (!dish)
       throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
-    return ingredient;
+    return dish;
   }
   async findAll(input: DishFilterDTO) {
-    const { name } = input;
+    const { name, userId, isAll } = input;
     const ingredient = await this.dishRepository
       .createQueryBuilder('i')
-      .leftJoin(
+      .leftJoinAndSelect(
         'i.dishIngredients',
         'dishIngredient',
         'dishIngredient.deleteAt is NULL',
@@ -68,21 +74,35 @@ export class DishedService {
         'i.id = n.objectId and n.type = :type',
         { type: Type.DISH },
       )
+      .leftJoinAndMapMany(
+        'i.weightPerServing',
+        WeightPerServing,
+        'w',
+        'i.id = w.objectId and w.type = :type',
+        { type: Type.DISH },
+      )
       .where(
-        `i.deleteAt is NULL ${name ? 'and LOWER(i.name) like :name' : ''}`,
+        `i.deleteAt is NULL 
+        ${name ? ' and LOWER(i.name) like :name' : ''}
+        ${userId ? ' and i.userID = :userId' : ''}
+        ${isAll.toString() === 'true' || isAll.toString() === 'false' ? ' and i.isAll = :isAll' : ''}`,
         {
           ...(name ? { name: `%${name.toLowerCase()}%` } : {}),
+          ...(userId ? { userId } : {}),
+          ...(isAll.toString() === 'true' || isAll.toString() === ' false'
+            ? { isAll: isAll.toString() === 'true' ? 1 : 0 }
+            : {}),
         },
       )
       .getMany();
     return ingredient;
   }
   async createOne(input: DishCreateDTO, id: number) {
-    const { ingredients } = input;
+    const { ingredients, userId } = input;
     const dish = await this.dishRepository.save(
       this.dishRepository.create({
         ...input,
-        userID: id,
+        ...(userId ? { userID: userId } : { userID: id }),
       }),
     );
     const { id: dishId } = dish;
@@ -101,11 +121,18 @@ export class DishedService {
         percentOfDailyNeeds: number;
       };
     } = {};
-
+    const propertiesInfo: {
+      [key: string]: {
+        amount: number;
+        unit: string;
+      };
+    } = {};
+    let amountDish = 0;
     const nutrientPromises = ingredients.map(async (ingredientDto) => {
       const ingredient = await this.ingredientsRepository.findOne({
         where: { id: ingredientDto.ingredientId },
       });
+      // console.log(ingredient);
       if (ingredient) {
         await this.dishIngredientsRepository.save(
           this.dishIngredientsRepository.create({
@@ -114,7 +141,23 @@ export class DishedService {
             Quantity: ingredientDto.quantity,
           }),
         );
+        const weightPerServing = await this.weightPerServingsRepository.findOne(
+          {
+            where: {
+              objectId: ingredientDto.ingredientId,
+              type: Type.INGREDIENTS,
+            },
+          },
+        );
+        const { amount: amountWeightPerServing } = weightPerServing;
+        amountDish += ingredientDto.quantity;
         const nutrients = await this.nutrientsRepository.find({
+          where: {
+            objectId: ingredientDto.ingredientId,
+            type: Type.INGREDIENTS,
+          },
+        });
+        const properties = await this.propertiesRepository.find({
           where: {
             objectId: ingredientDto.ingredientId,
             type: Type.INGREDIENTS,
@@ -126,9 +169,18 @@ export class DishedService {
             nutritionalInfo[name] = { amount: 0, unit, percentOfDailyNeeds: 0 };
           }
           nutritionalInfo[name].percentOfDailyNeeds +=
-            (percentOfDailyNeeds * ingredientDto.quantity) / 100;
+            (percentOfDailyNeeds * ingredientDto.quantity) /
+            amountWeightPerServing;
           nutritionalInfo[name].amount +=
-            (amount * ingredientDto.quantity) / 100;
+            (amount * ingredientDto.quantity) / amountWeightPerServing;
+        });
+        properties.forEach((pro) => {
+          const { name, unit, amount } = pro;
+          if (!propertiesInfo[name]) {
+            propertiesInfo[name] = { amount: 0, unit };
+          }
+          propertiesInfo[name].amount +=
+            (amount * ingredientDto.quantity) / amountWeightPerServing;
         });
       }
     });
@@ -148,6 +200,27 @@ export class DishedService {
           );
         },
       ),
+    );
+    await Promise.all(
+      Object.entries(propertiesInfo).map(async ([name, { amount, unit }]) => {
+        await this.propertiesRepository.save(
+          this.propertiesRepository.create({
+            name,
+            amount,
+            unit,
+            objectId: dishId,
+            type: Type.DISH,
+          }),
+        );
+      }),
+    );
+    await this.weightPerServingsRepository.save(
+      this.weightPerServingsRepository.create({
+        amount: amountDish,
+        type: Type.DISH,
+        objectId: dishId,
+        unit: 'g',
+      }),
     );
     return nutritionalInfo;
   }

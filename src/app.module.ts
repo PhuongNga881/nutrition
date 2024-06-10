@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, UseGuards } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -15,6 +15,7 @@ import { MealsModule } from './meals/meals.module';
 import { IngredientsModule } from './ingredients/ingredients.module';
 import { ConditionModule } from './condition/condition.module';
 import { DishesModule } from './dish/dish.module';
+import { UserGoalsModule } from './userGoals/userGoals.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { DishesModule } from './dish/dish.module';
     ConditionModule,
     DishesModule,
     AuthModule,
+    UserGoalsModule,
     ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'mysql',

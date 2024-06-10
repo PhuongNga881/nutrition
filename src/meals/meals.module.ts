@@ -15,6 +15,9 @@ import { userConditions } from 'src/entity/UserConditions';
 import { UserGoals } from 'src/entity/UserGoals';
 import { Conditions } from 'src/entity/Conditions';
 import { Nutrients } from 'src/entity/Nutrients';
+import { WeightPerServing } from 'src/entity/WeightPerServing';
+import { Flavonoids } from 'src/entity/flavonoids';
+import { Properties } from 'src/entity/properties';
 @Module({
   controllers: [MealsController],
   providers: [MealService],
@@ -30,6 +33,9 @@ import { Nutrients } from 'src/entity/Nutrients';
       UserGoals,
       Conditions,
       Nutrients,
+      WeightPerServing,
+      Flavonoids,
+      Properties,
     ]),
     ConfigModule,
     //BullModule.registerQueue({ name: 'send-mail' }),

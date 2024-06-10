@@ -33,6 +33,13 @@ export class MealService {
       .createQueryBuilder('i')
       .leftJoinAndSelect('i.mealRecipe', 'mealRecipe')
       .leftJoinAndSelect('mealRecipe.dish', 'dish', 'dish.deleteAt is NULL')
+      .leftJoinAndMapMany(
+        'i.nutrients',
+        Nutrients,
+        'n',
+        'i.id = n.objectId and n.type = :type',
+        { type: Type.DISH },
+      )
       .where('i.id = :id', { id: id })
       .getOne();
     if (!ingredient)
@@ -45,6 +52,13 @@ export class MealService {
       .createQueryBuilder('i')
       .leftJoinAndSelect('i.mealRecipe', 'mealRecipe')
       .leftJoinAndSelect('mealRecipe.dish', 'dish')
+      .leftJoinAndMapMany(
+        'i.nutrients',
+        Nutrients,
+        'n',
+        'i.id = n.objectId and n.type = :type',
+        { type: Type.DISH },
+      )
       .where(
         `1=1
     ${name ? ' AND LOWER(i.name) LIKE :name' : ''}
@@ -95,8 +109,8 @@ export class MealService {
             nutritionalInfo[name] = { amount: 0, unit, percentOfDailyNeeds: 0 };
           }
           nutritionalInfo[name].percentOfDailyNeeds +=
-            (percentOfDailyNeeds * dishDto.quantity) / 100;
-          nutritionalInfo[name].amount += (amount * dishDto.quantity) / 100;
+            percentOfDailyNeeds * dishDto.quantity;
+          nutritionalInfo[name].amount += amount * dishDto.quantity;
         });
       }
     });
@@ -181,5 +195,86 @@ export class MealService {
       });
     }
     return new HttpException('deleted', HttpStatus.GONE);
+  }
+  async calculateDailyNutrition(userId: number, date: string) {
+    return this.calculateNutritionForPeriod(
+      userId,
+      moment(date),
+      moment(date).add(1, 'days'),
+    );
+  }
+
+  // New method to calculate weekly nutrition
+  async calculateWeeklyNutrition(userId: number, weekStartDate: string) {
+    return this.calculateNutritionForPeriod(
+      userId,
+      moment(weekStartDate),
+      moment(weekStartDate).add(1, 'weeks'),
+    );
+  }
+
+  // New method to calculate monthly nutrition
+  async calculateMonthlyNutrition(userId: number, monthStartDate: string) {
+    return this.calculateNutritionForPeriod(
+      userId,
+      moment(monthStartDate),
+      moment(monthStartDate).add(1, 'months'),
+    );
+  }
+
+  // Helper method to calculate nutrition for a given period
+  private async calculateNutritionForPeriod(
+    userId: number,
+    startDate: moment.Moment,
+    endDate: moment.Moment,
+  ) {
+    const meals = await this.mealRepository.find({
+      where: {
+        userID: userId,
+        dateMeal: In(this.getDateRangeArray(startDate, endDate)),
+      },
+    });
+
+    const nutritionalInfo: {
+      [key: string]: {
+        amount: number;
+        unit: string;
+        percentOfDailyNeeds: number;
+      };
+    } = {};
+
+    for (const meal of meals) {
+      const nutrients = await this.nutrientsRepository.find({
+        where: {
+          objectId: meal.id,
+          type: Type.MEAL,
+        },
+      });
+
+      nutrients.forEach((nutrient) => {
+        const { name, unit, amount, percentOfDailyNeeds } = nutrient;
+        if (!nutritionalInfo[name]) {
+          nutritionalInfo[name] = { amount: 0, unit, percentOfDailyNeeds: 0 };
+        }
+        nutritionalInfo[name].amount += amount;
+        nutritionalInfo[name].percentOfDailyNeeds += percentOfDailyNeeds;
+      });
+    }
+
+    return nutritionalInfo;
+  }
+
+  // Helper method to generate date range array
+  private getDateRangeArray(
+    start: moment.Moment,
+    end: moment.Moment,
+  ): string[] {
+    const dateArray = [];
+    let currentDate = start.clone();
+    while (currentDate < end) {
+      dateArray.push(currentDate.format('YYYY-MM-DD'));
+      currentDate = currentDate.add(1, 'days');
+    }
+    return dateArray;
   }
 }
