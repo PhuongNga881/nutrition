@@ -24,11 +24,11 @@ import {
 export class ConditionsController {
   constructor(private readonly conditionsService: ConditionsService) {}
   @UsePipes(new ValidationPipe({ transform: true }))
-  @UseGuards(AuthGuard)
-  @Post('/create')
-  async create(@Body() input: ConditionCreateDTO) {
-    return await this.conditionsService.createOne(input);
-  }
+  // @UseGuards(AuthGuard)
+  // @Post('/create')
+  // async create(@Body() input: ConditionCreateDTO) {
+  //   return await this.conditionsService.createOne(input);
+  // }
   @UseGuards(AuthGuard)
   @Get('/findOne/:id')
   async findOne(@Param('id') id: number) {
@@ -39,22 +39,22 @@ export class ConditionsController {
   async findAll(@Query() input: ConditionFilterDTO) {
     return await this.conditionsService.findAll(input);
   }
-  @UseGuards(AuthGuard)
-  @Patch('/update/:id')
-  async update(
-    @Body()
-    note: ConditionUpdateDTO,
-    @Param('id')
-    id: number,
-  ) {
-    return await this.conditionsService.update(id, note);
-  }
-  @UseGuards(AuthGuard)
-  @Delete('/delete')
-  async delete(
-    @Body()
-    input: ConditionDeleteDTO,
-  ) {
-    return await this.conditionsService.delete(input);
-  }
+  // @UseGuards(AuthGuard)
+  // @Patch('/update/:id')
+  // async update(
+  //   @Body()
+  //   note: ConditionUpdateDTO,
+  //   @Param('id')
+  //   id: number,
+  // ) {
+  //   return await this.conditionsService.update(id, note);
+  // }
+  // @UseGuards(AuthGuard)
+  // @Delete('/delete')
+  // async delete(
+  //   @Body()
+  //   input: ConditionDeleteDTO,
+  // ) {
+  //   return await this.conditionsService.delete(input);
+  // }
 }

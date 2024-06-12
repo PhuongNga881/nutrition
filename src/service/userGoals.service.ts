@@ -790,12 +790,14 @@ export class UserGoalsService {
     const { BMR, BMI, TEE } = await this.calculator(input);
     let { TDEE } = await this.calculator(input);
     let nutrients = await this.createDataNutrients(input, TDEE);
-    for (const id of conditionIds) {
-      ({ nutrients, TDEE } = await this.adjustNutrientsForCondition(
-        nutrients,
-        id,
-        TDEE,
-      ));
+    if (conditionIds && conditionIds.length > 0) {
+      for (const id of conditionIds) {
+        ({ nutrients, TDEE } = await this.adjustNutrientsForCondition(
+          nutrients,
+          id,
+          TDEE,
+        ));
+      }
     }
     await this.nutrientsRepository.save(
       this.nutrientsRepository.create({
@@ -804,6 +806,19 @@ export class UserGoalsService {
         type: Type.USER_GOALS,
       }),
     );
+    const { id: userGoalId } = userGoal;
+    if (conditionIds) {
+      if (conditionIds.length > 0) {
+        for (const conditionId of conditionIds) {
+          await this.userConditionsRepository.save(
+            this.userConditionsRepository.create({
+              userGoalId,
+              conditionId,
+            }),
+          );
+        }
+      }
+    }
     return await this.userGoalsRepository.save(
       this.userGoalsRepository.create({
         ...userGoal,
@@ -822,7 +837,7 @@ export class UserGoalsService {
   ): Promise<{ nutrients: any[]; TDEE: any }> {
     console.log('id condition: ', id);
     switch (id) {
-      case 5:
+      case '5':
         let energy: number;
         let totalFiber: number;
         nutrients.map((nutrient) => {
@@ -858,7 +873,7 @@ export class UserGoalsService {
         console.log('chay den day ');
         console.log(nutrients);
         return { nutrients, TDEE };
-      case 6:
+      case '6':
         const heartFatReductionFactor = 0.7;
         const heartCholesterolReductionFactor = 0.7;
         const heartSodiumReductionFactor = 0.5;
@@ -901,7 +916,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 7:
+      case '7':
         const kidneyProteinReductionFactor = 0.7;
         const kidneyPotassiumReductionFactor = 0.7;
         const kidneyPhosphorusReductionFactor = 0.7;
@@ -930,7 +945,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 8:
+      case '8':
         let liverProtein = 0;
         const proteinReductionFactorLiver = 0.8;
         const fatReductionFactor = 0.7;
@@ -956,7 +971,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 9:
+      case '9':
         const cancerCalorieIncreaseFactor = 1.15;
         const extraCalories = TDEE * (cancerCalorieIncreaseFactor - 1);
         const extraProteinGrams = extraCalories / 4;
@@ -969,7 +984,7 @@ export class UserGoalsService {
         });
 
         return { nutrients, TDEE };
-      case 10:
+      case '10':
         const calciumIncrease = 1200;
         const vitaminDIncrease = 800;
         let proteinAdjustment = 0;
@@ -993,7 +1008,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 11:
+      case '11':
         const calciumRecommendedIntake = 1000; // Khuyến nghị lượng canxi
         const vitaminDRecommendedIntake = 600; // Khuyến nghị lượng vitamin D
         let proteinAdjustmentCeliac = 0;
@@ -1033,7 +1048,7 @@ export class UserGoalsService {
         });
 
         return { nutrients, TDEE };
-      case 12:
+      case '12':
         const proteinReductionGout = 0.2; // Giảm 20% lượng protein
         let proteinReductionAmountGout = 0;
 
@@ -1053,7 +1068,7 @@ export class UserGoalsService {
         });
 
         return { nutrients, TDEE };
-      case 13:
+      case '13':
         const ironRecommendedIntake = 18;
         const vitaminCRecommendedIntake = 75;
 
@@ -1074,7 +1089,7 @@ export class UserGoalsService {
         });
 
         return { nutrients, TDEE };
-      case 14:
+      case '14':
         // Các điều chỉnh dinh dưỡng dựa trên khuyến nghị của các tổ chức y tế
         const calciumRecommendedIntakeRA = 1200; // Khuyến nghị lượng canxi
         const vitaminDRecommendedIntakeRA = 800; // Khuyến nghị lượng vitamin D
@@ -1113,7 +1128,7 @@ export class UserGoalsService {
         });
 
         return { nutrients, TDEE };
-      case 15:
+      case '15':
         const vitaminDRecommendedIntakeIBD = 800;
         const ironRecommendedIntakeIBD = 18;
 
@@ -1134,7 +1149,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 16:
+      case '16':
         const vitaminCRecommendedIntakeCOPD = 90;
         const vitaminERecommendedIntakeCOPD = 15;
 
@@ -1155,7 +1170,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 17:
+      case '17':
         const fiberRecommendedIntakeParkinson = 30;
         const vitaminB6RecommendedIntakeParkinson = 1.7;
 
@@ -1176,7 +1191,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 18:
+      case '18':
         console.log('chay den day');
         const vitaminERecommendedIntakeAlzheimer = 15;
         const vitaminCRecommendedIntakeAlzheimer = 90;
@@ -1215,7 +1230,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 19:
+      case '19':
         const vitaminARecommendedIntakePUD = 900;
         const zincRecommendedIntakePUD = 11;
 
@@ -1235,7 +1250,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 20:
+      case '20':
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Folate') {
             nutrient.amount = Math.max(600, nutrient.amount);
@@ -1277,7 +1292,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 21:
+      case '21':
         const folateRecommendedIntakeSecondTrimester = 600;
         const ironRecommendedIntakeSecondTrimester = 27;
         const calciumRecommendedIntakeSecondTrimester = 1000;
@@ -1336,7 +1351,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 22:
+      case '22':
         TDEE += 452;
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Folate') {
@@ -1378,7 +1393,7 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-      case 23:
+      case '23':
         TDEE += 500;
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Folate') {
@@ -1427,7 +1442,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 24:
+      case '24':
         const vitaminERecommendedIntakeHepB = 15;
         const vitaminCRecommendedIntakeHepB = 90;
 
@@ -1448,7 +1463,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 25:
+      case '25':
         const vitaminERecommendedIntakeHepC = 15;
         const vitaminCRecommendedIntakeHepC = 90;
 
@@ -1469,7 +1484,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 26:
+      case '26':
         const vitaminKRecommendedIntakeCirrhosis = 120;
         const vitaminDRecommendedIntakeCirrhosis = 800;
 
@@ -1490,7 +1505,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 27:
+      case '27':
         const calciumRecommendedIntakeHyperthyroid = 1200;
         const vitaminDRecommendedIntakeHyperthyroid = 800;
 
@@ -1511,7 +1526,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 28:
+      case '28':
         const vitaminDRecommendedIntakeMS = 800;
         const omega3AdditionMS = 1000;
 
@@ -1542,7 +1557,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 29:
+      case '29':
         const vitaminARecommendedIntakePancreatitis = 900;
         const vitaminCRecommendedIntakePancreatitis = 90;
 
@@ -1563,7 +1578,7 @@ export class UserGoalsService {
         });
         return { nutrients, TDEE };
 
-      case 30:
+      case '30':
         const calciumRecommendedIntakeOsteoporosis = 1200;
         const vitaminDRecommendedIntakeOsteoporosis = 800;
 

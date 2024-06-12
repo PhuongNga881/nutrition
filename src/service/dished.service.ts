@@ -85,12 +85,12 @@ export class DishedService {
         `i.deleteAt is NULL 
         ${name ? ' and LOWER(i.name) like :name' : ''}
         ${userId ? ' and i.userID = :userId' : ''}
-        ${isAll.toString() === 'true' || isAll.toString() === 'false' ? ' and i.isAll = :isAll' : ''}`,
+        ${isAll?.toString() === 'true' || isAll?.toString() === 'false' ? ' and i.isAll = :isAll' : ''}`,
         {
           ...(name ? { name: `%${name.toLowerCase()}%` } : {}),
           ...(userId ? { userId } : {}),
-          ...(isAll.toString() === 'true' || isAll.toString() === ' false'
-            ? { isAll: isAll.toString() === 'true' ? 1 : 0 }
+          ...(isAll?.toString() === 'true' || isAll?.toString() === ' false'
+            ? { isAll: isAll?.toString() === 'true' ? 1 : 0 }
             : {}),
         },
       )
