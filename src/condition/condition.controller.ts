@@ -39,16 +39,16 @@ export class ConditionsController {
   async findAll(@Query() input: ConditionFilterDTO) {
     return await this.conditionsService.findAll(input);
   }
-  // @UseGuards(AuthGuard)
-  // @Patch('/update/:id')
-  // async update(
-  //   @Body()
-  //   note: ConditionUpdateDTO,
-  //   @Param('id')
-  //   id: number,
-  // ) {
-  //   return await this.conditionsService.update(id, note);
-  // }
+  @UseGuards(AuthGuard)
+  @Patch('/update/:id')
+  async update(
+    @Body()
+    note: ConditionUpdateDTO,
+    @Param('id')
+    id: number,
+  ) {
+    return await this.conditionsService.update(id, note);
+  }
   // @UseGuards(AuthGuard)
   // @Delete('/delete')
   // async delete(

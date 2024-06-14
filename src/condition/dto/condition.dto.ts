@@ -1,18 +1,9 @@
-export class ConditionCreateDTO {
-  name: string;
-
-  Description: string;
-  nutrition: CreateNutrition[];
+export class ConditionUpdateDTO {
+  isActive: boolean;
 }
-export class CreateNutrition {
-  name: string;
-  amount: number;
-  unit: string;
-}
-export class ConditionUpdateDTO extends ConditionCreateDTO {}
 
 export class ConditionFilterDTO {
-  userId: number;
+  isActive: boolean;
   name: string;
 }
 

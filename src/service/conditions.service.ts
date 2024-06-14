@@ -3,7 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import 'dotenv/config';
 import { Conditions } from 'src/entity/Conditions';
-import { ConditionFilterDTO } from 'src/condition/dto/condition.dto';
+import {
+  ConditionFilterDTO,
+  ConditionUpdateDTO,
+} from 'src/condition/dto/condition.dto';
 @Injectable()
 export class ConditionsService {
   constructor(
@@ -21,14 +24,23 @@ export class ConditionsService {
     return ingredient;
   }
   async findAll(input: ConditionFilterDTO) {
-    const { name } = input;
+    const { name, isActive } = input;
     return await this.conditionRepository
       .createQueryBuilder('i')
       .leftJoinAndSelect('i.userCondition', 'uc')
       .leftJoinAndSelect('uc.user', 'user')
-      .where(`1=1 ${name ? 'AND LOWER(i.name) LIKE :name' : ''}`, {
-        ...(name ? { name: `%${name.toLowerCase()}%` } : {}),
-      })
+      .where(
+        `1=1
+        ${name ? 'AND LOWER(i.name) LIKE :name' : ''}
+        ${isActive?.toString() === 'true' || isActive?.toString() === 'false' ? ' and i.isActive = :isActive' : ''}`,
+        {
+          ...(name ? { name: `%${name.toLowerCase()}%` } : {}),
+          ...(isActive?.toString() === 'true' ||
+          isActive?.toString() === 'false'
+            ? { isActive: isActive?.toString() === 'true' ? 1 : 0 }
+            : {}),
+        },
+      )
       .getMany();
   }
   // async createOne(input: ConditionCreateDTO) {
@@ -38,19 +50,18 @@ export class ConditionsService {
   //     }),
   //   );
   // }
-  // async update(id: number, input: ConditionUpdateDTO) {
-  //   const condition = await this.conditionRepository.findOne({
-  //     where: { id },
-  //   });
-  //   if (!condition)
-  //     throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
-  //   return await this.conditionRepository
-  //     .createQueryBuilder()
-  //     .update(Conditions)
-  //     .set({ ...input })
-  //     .where('id = :id', { id: id })
-  //     .execute();
-  // }
+  async update(id: number, input: ConditionUpdateDTO) {
+    const { isActive } = input;
+    const condition = await this.conditionRepository.findOne({
+      where: { id },
+    });
+    if (!condition)
+      throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
+    return await this.conditionRepository.save({
+      ...condition,
+      isActive,
+    });
+  }
   // async delete(input: ConditionDeleteDTO) {
   //   const { id: ids } = input;
   //   if (ids?.length > 0) {

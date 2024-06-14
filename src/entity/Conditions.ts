@@ -11,7 +11,7 @@ export class Conditions {
   @Column({ name: 'name_vn' })
   name_vn: number;
   @Column({ name: 'is_active' })
-  is_active: boolean;
+  isActive: boolean;
   @Column({ name: 'Description', nullable: true })
   Description: string;
 
