@@ -158,7 +158,7 @@ export class UserGoalsService {
     return userGoal;
   }
   async createDataNutrients(input: UserGoalsCreateDTO, TDEE: number) {
-    const { sex, age } = input;
+    const { sex, age, weight } = input;
     const nutrient = [];
     const Protein = {
       name: 'Protein',
@@ -190,8 +190,23 @@ export class UserGoalsService {
     nutrient.push(fiber);
     const Water = {
       name: 'Water',
-      amount: TDEE / 1000,
-      unit: 'liters',
+      amount:
+        age < 10
+          ? weight <= 10
+            ? 100 * weight
+            : weight <= 20
+              ? 1000 + 50 * (weight - 10)
+              : 1500 + 20 * (weight - 20)
+          : age >= 10 && age <= 18
+            ? 40 * weight
+            : age >= 19 && age <= 30
+              ? 40 * weight
+              : age >= 31 && age <= 55
+                ? 35 * weight
+                : age >= 56
+                  ? 30 * weight
+                  : 0,
+      unit: 'ml',
       percentOfDailyNeeds: 100,
     };
     nutrient.push(Water);
@@ -842,11 +857,11 @@ export class UserGoalsService {
         let totalFiber: number;
         nutrients.map((nutrient) => {
           if (nutrient.name === 'Carbohydrates') {
-            energy = nutrient.amount * 0.2;
-            nutrient.amount *= 0.8;
+            energy = nutrient.amount * 0.1;
+            nutrient.amount *= 0.9;
           }
           if (nutrient.name === 'Fiber') {
-            nutrient.amount *= 1.2;
+            nutrient.amount *= 1.4;
             totalFiber = nutrient.amount;
           }
           return nutrient;
@@ -870,16 +885,11 @@ export class UserGoalsService {
           }
           return nutrient;
         });
-        console.log('chay den day ');
-        console.log(nutrients);
         return { nutrients, TDEE };
       case '6':
-        const heartFatReductionFactor = 0.7;
-        const heartCholesterolReductionFactor = 0.7;
-        const heartSodiumReductionFactor = 0.5;
+        const heartSaturatedFatReductionFactor = 0.06;
         const heartFiberIncreaseFactor = 1.2;
         const heartOmega3Addition = 1000;
-        let heartFatNotUser = 0;
 
         if (!nutrients.find((nutrient) => nutrient.name === 'Omega-3')) {
           nutrients.push({
@@ -889,17 +899,36 @@ export class UserGoalsService {
             percentOfDailyNeeds: 100,
           });
         }
-
+        if (!nutrients.find((nutrient) => nutrient.name === 'Cholesterol')) {
+          nutrients.push({
+            name: 'Cholesterol',
+            amount: 0,
+            unit: 'mg',
+            percentOfDailyNeeds: 100,
+          });
+        }
+        if (!nutrients.find((nutrient) => nutrient.name === 'Saturated Fat')) {
+          nutrients.push({
+            name: 'Saturated Fat',
+            amount: 0,
+            unit: 'g',
+            percentOfDailyNeeds: 100,
+          });
+        }
+        if (!nutrients.find((nutrient) => nutrient.name === 'Trans Fat')) {
+          nutrients.push({
+            name: 'Trans Fat',
+            amount: 0,
+            unit: 'g',
+            percentOfDailyNeeds: 100,
+          });
+        }
         nutrients = nutrients.map((nutrient) => {
-          if (nutrient.name === 'Fat') {
-            heartFatNotUser = nutrient.amount * 0.3;
-            nutrient.amount *= heartFatReductionFactor;
+          if (nutrient.name === 'Saturated Fat') {
+            nutrient.amount = (TDEE * heartSaturatedFatReductionFactor) / 9;
           }
           if (nutrient.name === 'Cholesterol') {
-            nutrient.amount *= heartCholesterolReductionFactor;
-          }
-          if (nutrient.name === 'Sodium') {
-            nutrient.amount *= heartSodiumReductionFactor;
+            nutrient.amount = 150;
           }
           if (nutrient.name === 'Fiber') {
             nutrient.amount *= heartFiberIncreaseFactor;
@@ -907,24 +936,58 @@ export class UserGoalsService {
           if (nutrient.name === 'Omega-3') {
             nutrient.amount += heartOmega3Addition;
           }
-          return nutrient;
-        });
-        nutrients = nutrients.map((nutrient) => {
-          if (nutrient.name === 'Protein') {
-            nutrient.amount += heartFatNotUser;
+          if (nutrient.name === 'Potassium') {
+            nutrient.amount = 4700;
+          }
+          if (nutrient.name === 'Magnesium') {
+            nutrient.amount = 500;
+          }
+          if (nutrient.name === 'Calcium') {
+            nutrient.amount = 1240;
           }
           return nutrient;
         });
         return { nutrients, TDEE };
+      //case '7':
+      // const kidneyProteinReductionFactor = 0.7;
+      // const kidneyPotassiumReductionFactor = 0.7;
+      // const kidneyPhosphorusReductionFactor = 0.7;
+      // const kidneySodiumReductionFactorKidney = 0.5;
+      // let kidneyProtein = 0;
+      // nutrients = nutrients.map((nutrient) => {
+      //   if (nutrient.name === 'Protein') {
+      //     kidneyProtein = nutrient.amount * 0.3;
+      //     nutrient.amount *= kidneyProteinReductionFactor;
+      //   }
+      //   if (nutrient.name === 'Potassium') {
+      //     nutrient.amount *= kidneyPotassiumReductionFactor;
+      //   }
+      //   if (nutrient.name === 'Phosphorus') {
+      //     nutrient.amount *= kidneyPhosphorusReductionFactor;
+      //   }
+      //   if (nutrient.name === 'Sodium') {
+      //     nutrient.amount *= kidneySodiumReductionFactorKidney;
+      //   }
+      //   return nutrient;
+      // });
+      // nutrients = nutrients.map((nutrient) => {
+      //   if (nutrient.name === 'Carbohydrates') {
+      //     nutrient.amount += kidneyProtein;
+      //   }
+      //   return nutrient;
+      // });
+      // return { nutrients, TDEE };
+
       case '7':
-        const kidneyProteinReductionFactor = 0.7;
+        const kidneyProteinReductionFactor = 0.8;
         const kidneyPotassiumReductionFactor = 0.7;
         const kidneyPhosphorusReductionFactor = 0.7;
-        const kidneySodiumReductionFactorKidney = 0.5;
+        const kidneySodiumReductionFactor = 0.6;
         let kidneyProtein = 0;
+
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Protein') {
-            kidneyProtein = nutrient.amount * 0.3;
+            kidneyProtein = nutrient.amount * 0.2;
             nutrient.amount *= kidneyProteinReductionFactor;
           }
           if (nutrient.name === 'Potassium') {
@@ -934,29 +997,66 @@ export class UserGoalsService {
             nutrient.amount *= kidneyPhosphorusReductionFactor;
           }
           if (nutrient.name === 'Sodium') {
-            nutrient.amount *= kidneySodiumReductionFactorKidney;
+            nutrient.amount *= kidneySodiumReductionFactor;
+          }
+          if (nutrient.name === 'Calcium') {
+            nutrient.amount = Math.min(900, nutrient.amount);
           }
           return nutrient;
         });
+
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Carbohydrates') {
             nutrient.amount += kidneyProtein;
           }
           return nutrient;
         });
+
         return { nutrients, TDEE };
+
       case '8':
         let liverProtein = 0;
-        const proteinReductionFactorLiver = 0.8;
+        const proteinReductionFactorLiver = 0.9;
         const fatReductionFactor = 0.7;
         const sodiumReductionFactorLiver = 0.5;
-
+        let liverFat = 0;
+        if (!nutrients.find((nutrient) => nutrient.name === 'Cholesterol')) {
+          nutrients.push({
+            name: 'Cholesterol',
+            amount: 0,
+            unit: 'mg',
+            percentOfDailyNeeds: 100,
+          });
+        }
+        if (!nutrients.find((nutrient) => nutrient.name === 'Saturated Fat')) {
+          nutrients.push({
+            name: 'Saturated Fat',
+            amount: 0,
+            unit: 'g',
+            percentOfDailyNeeds: 100,
+          });
+        }
+        if (!nutrients.find((nutrient) => nutrient.name === 'Trans Fat')) {
+          nutrients.push({
+            name: 'Trans Fat',
+            amount: 0,
+            unit: 'g',
+            percentOfDailyNeeds: 100,
+          });
+        }
         nutrients = nutrients.map((nutrient) => {
+          if (nutrient.name === 'Saturated Fat') {
+            nutrient.amount = (TDEE * 0.06) / 9;
+          }
+          if (nutrient.name === 'Cholesterol') {
+            nutrient.amount = 100;
+          }
           if (nutrient.name === 'Protein') {
-            liverProtein = nutrient.amount * 0.2;
+            liverProtein = nutrient.amount * 0.1;
             nutrient.amount *= proteinReductionFactorLiver;
           }
           if (nutrient.name === 'Fat') {
+            liverFat = (nutrient.amount * 0.3 * 9) / 4;
             nutrient.amount *= fatReductionFactor;
           }
           if (nutrient.name === 'Sodium') {
@@ -966,7 +1066,7 @@ export class UserGoalsService {
         });
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Carbohydrates') {
-            nutrient.amount += liverProtein;
+            nutrient.amount += liverProtein + liverFat;
           }
           return nutrient;
         });
@@ -987,7 +1087,6 @@ export class UserGoalsService {
       case '10':
         const calciumIncrease = 1200;
         const vitaminDIncrease = 800;
-        let proteinAdjustment = 0;
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Calcium') {
             nutrient.amount = Math.max(calciumIncrease, nutrient.amount); // Đảm bảo ít nhất là 1200 mg/ngày
@@ -995,25 +1094,13 @@ export class UserGoalsService {
           if (nutrient.name === 'Vitamin D') {
             nutrient.amount = Math.max(vitaminDIncrease, nutrient.amount); // Đảm bảo ít nhất là 800 IU/ngày
           }
-          if (nutrient.name === 'Protein') {
-            proteinAdjustment = nutrient.amount * 0.1;
-            nutrient.amount += proteinAdjustment;
-          }
-          return nutrient;
-        });
-        nutrients = nutrients.map((nutrient) => {
-          if (nutrient.name === 'Carbohydrates') {
-            nutrient.amount -= proteinAdjustment;
-          }
           return nutrient;
         });
         return { nutrients, TDEE };
       case '11':
-        const calciumRecommendedIntake = 1000; // Khuyến nghị lượng canxi
-        const vitaminDRecommendedIntake = 600; // Khuyến nghị lượng vitamin D
-        let proteinAdjustmentCeliac = 0;
+        const calciumRecommendedIntake = 1000;
+        const vitaminDRecommendedIntake = 600;
 
-        // Đảm bảo lượng canxi và vitamin D đạt mức khuyến nghị
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Calcium') {
             nutrient.amount = Math.max(
@@ -1026,23 +1113,6 @@ export class UserGoalsService {
               vitaminDRecommendedIntake,
               nutrient.amount,
             );
-          }
-          return nutrient;
-        });
-
-        // Tăng lượng protein
-        nutrients = nutrients.map((nutrient) => {
-          if (nutrient.name === 'Protein') {
-            proteinAdjustmentCeliac = nutrient.amount * 0.1; // Tăng 10% lượng protein
-            nutrient.amount += proteinAdjustmentCeliac;
-          }
-          return nutrient;
-        });
-
-        // Giảm lượng carbohydrate để bù vào việc tăng protein
-        nutrients = nutrients.map((nutrient) => {
-          if (nutrient.name === 'Carbohydrates') {
-            nutrient.amount -= proteinAdjustmentCeliac;
           }
           return nutrient;
         });
@@ -1063,6 +1133,25 @@ export class UserGoalsService {
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Carbohydrates') {
             nutrient.amount -= proteinReductionAmountGout;
+          }
+          return nutrient;
+        });
+
+        nutrients = nutrients.map((nutrient) => {
+          if (nutrient.name === 'Calcium') {
+            nutrient.amount = Math.max(1000, nutrient.amount);
+          }
+          if (nutrient.name === 'Vitamin D') {
+            nutrient.amount = Math.max(600, nutrient.amount);
+          }
+          if (nutrient.name === 'Vitamin C') {
+            nutrient.amount = Math.max(90, nutrient.amount);
+          }
+          if (nutrient.name === 'Fiber') {
+            nutrient.amount = Math.max(30, nutrient.amount);
+          }
+          if (nutrient.name === 'Potassium') {
+            nutrient.amount = Math.max(4700, nutrient.amount);
           }
           return nutrient;
         });
@@ -1090,12 +1179,10 @@ export class UserGoalsService {
 
         return { nutrients, TDEE };
       case '14':
-        // Các điều chỉnh dinh dưỡng dựa trên khuyến nghị của các tổ chức y tế
-        const calciumRecommendedIntakeRA = 1200; // Khuyến nghị lượng canxi
-        const vitaminDRecommendedIntakeRA = 800; // Khuyến nghị lượng vitamin D
+        const calciumRecommendedIntakeRA = 1200;
+        const vitaminDRecommendedIntakeRA = 800;
         const omega3AdditionRAarthritis = 1000;
 
-        // Đảm bảo lượng canxi và vitamin D đạt mức khuyến nghị
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Calcium') {
             nutrient.amount = Math.max(
@@ -1166,6 +1253,12 @@ export class UserGoalsService {
               nutrient.amount,
             );
           }
+          if (nutrient.name === 'Vitamin A') {
+            nutrient.amount = Math.max(900, nutrient.amount);
+          }
+          if (nutrient.name === 'Vitamin D') {
+            nutrient.amount = Math.max(800, nutrient.amount);
+          }
           return nutrient;
         });
         return { nutrients, TDEE };
@@ -1173,26 +1266,63 @@ export class UserGoalsService {
       case '17':
         const fiberRecommendedIntakeParkinson = 30;
         const vitaminB6RecommendedIntakeParkinson = 1.7;
-
+        if (!nutrients.find((nutrient) => nutrient.name === 'Omega-3')) {
+          nutrients.push({
+            name: 'Omega-3',
+            amount: 0,
+            unit: 'mg',
+            percentOfDailyNeeds: 100,
+          });
+        }
+        if (!nutrients.find((nutrient) => nutrient.name === 'Folic Acid')) {
+          nutrients.push({
+            name: 'Folic Acid',
+            amount: 0,
+            unit: 'µg',
+            percentOfDailyNeeds: 100,
+          });
+        }
         nutrients = nutrients.map((nutrient) => {
-          if (nutrient.name === 'Fiber') {
-            nutrient.amount = Math.max(
-              fiberRecommendedIntakeParkinson,
-              nutrient.amount,
-            );
-          }
-          if (nutrient.name === 'Vitamin B6') {
-            nutrient.amount = Math.max(
-              vitaminB6RecommendedIntakeParkinson,
-              nutrient.amount,
-            );
+          switch (nutrient.name) {
+            case 'Fiber':
+              nutrient.amount = Math.max(
+                fiberRecommendedIntakeParkinson,
+                nutrient.amount,
+              );
+              break;
+            case 'Vitamin B6':
+              nutrient.amount = Math.max(
+                vitaminB6RecommendedIntakeParkinson,
+                nutrient.amount,
+              );
+              break;
+            case 'Vitamin D':
+              nutrient.amount = Math.max(1200, nutrient.amount);
+              break;
+            case 'Omega-3':
+              nutrient.amount = Math.max(1000, nutrient.amount);
+              break;
+            case 'Vitamin B1':
+              nutrient.amount = Math.max(100, nutrient.amount);
+              break;
+            case 'Vitamin B2':
+              nutrient.amount = Math.max(30, nutrient.amount);
+              break;
+            case 'Vitamin B12':
+              nutrient.amount = Math.max(100, nutrient.amount);
+              break;
+            case 'Folic Acid':
+              nutrient.amount = Math.max(400, nutrient.amount);
+              break;
+            default:
+              break;
           }
           return nutrient;
         });
+
         return { nutrients, TDEE };
 
       case '18':
-        console.log('chay den day');
         const vitaminERecommendedIntakeAlzheimer = 15;
         const vitaminCRecommendedIntakeAlzheimer = 90;
         const omega3AdditionAlzheimer = 1000;
@@ -1231,21 +1361,24 @@ export class UserGoalsService {
         return { nutrients, TDEE };
 
       case '19':
-        const vitaminARecommendedIntakePUD = 900;
-        const zincRecommendedIntakePUD = 11;
-
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Vitamin A') {
-            nutrient.amount = Math.max(
-              vitaminARecommendedIntakePUD,
-              nutrient.amount,
-            );
+            nutrient.amount = Math.max(3000, nutrient.amount);
+          }
+          if (nutrient.name === 'Vitamin C') {
+            nutrient.amount = Math.max(500, nutrient.amount);
+          }
+          if (nutrient.name === 'Vitamin B12') {
+            nutrient.amount = Math.max(2.4, nutrient.amount);
+          }
+          if (nutrient.name === 'Iron') {
+            nutrient.amount = Math.max(45, nutrient.amount);
+          }
+          if (nutrient.name === 'Selenium') {
+            nutrient.amount = Math.max(400, nutrient.amount);
           }
           if (nutrient.name === 'Zinc') {
-            nutrient.amount = Math.max(
-              zincRecommendedIntakePUD,
-              nutrient.amount,
-            );
+            nutrient.amount = Math.max(40, nutrient.amount);
           }
           return nutrient;
         });
@@ -1577,45 +1710,6 @@ export class UserGoalsService {
           return nutrient;
         });
         return { nutrients, TDEE };
-
-      case '30':
-        const calciumRecommendedIntakeOsteoporosis = 1200;
-        const vitaminDRecommendedIntakeOsteoporosis = 800;
-
-        nutrients = nutrients.map((nutrient) => {
-          if (nutrient.name === 'Calcium') {
-            nutrient.amount = Math.max(
-              calciumRecommendedIntakeOsteoporosis,
-              nutrient.amount,
-            );
-          }
-          if (nutrient.name === 'Vitamin D') {
-            nutrient.amount = Math.max(
-              vitaminDRecommendedIntakeOsteoporosis,
-              nutrient.amount,
-            );
-          }
-          return nutrient;
-        });
-        return { nutrients, TDEE };
-      // case 'hypertension':
-      //   return nutrients.map((nutrient) => {
-      //     if (nutrient.name === 'Sodium') {
-      //       nutrient.amount *= 0.5;
-      //     }
-      //     if (nutrient.name === 'Potassium') {
-      //       nutrient.amount *= 1.2;
-      //     }
-      //     return nutrient;
-      //   });
-      // case 'obesity':
-      //   return nutrients.map((nutrient) => {
-      //     if (nutrient.name === 'Fat') {
-      //       nutrient.amount *= 0.7; // Giảm lượng chất béo
-      //     }
-      //     return { nutrients, TDEE };
-      //   });
-      // Thêm các case cho các loại bệnh khác
       default:
         return { nutrients, TDEE };
     }

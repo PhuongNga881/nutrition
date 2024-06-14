@@ -8,17 +8,10 @@ export class Conditions {
   @Column({ name: 'name' })
   name: string;
 
-  @Column({ name: 'calories' })
-  calorie: number;
-
-  @Column({ name: 'protein' })
-  protein: number;
-
-  @Column({ name: 'carbs', nullable: true })
-  carbs: number;
-
-  @Column({ name: 'fat' })
-  fat: number;
+  @Column({ name: 'name_vn' })
+  name_vn: number;
+  @Column({ name: 'is_active' })
+  is_active: boolean;
   @Column({ name: 'Description', nullable: true })
   Description: string;
 
