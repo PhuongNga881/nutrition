@@ -47,6 +47,11 @@ export class MealsController {
     return await this.mealService.findAll(input);
   }
   @UseGuards(AuthGuard)
+  @Get('/get-nutrition-day/:ids')
+  async getNutritionDay(@Param('id') id: number, @Body() day: string) {
+    return await this.mealService.calculateDailyNutrition(id, day);
+  }
+  @UseGuards(AuthGuard)
   @Patch('/update/:id')
   async update(
     @Body()
