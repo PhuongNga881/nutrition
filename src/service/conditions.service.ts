@@ -27,8 +27,6 @@ export class ConditionsService {
     const { name, isActive } = input;
     return await this.conditionRepository
       .createQueryBuilder('i')
-      .leftJoinAndSelect('i.userCondition', 'uc')
-      .leftJoinAndSelect('uc.user', 'user')
       .where(
         `1=1
         ${name ? 'AND LOWER(i.name) LIKE :name' : ''}

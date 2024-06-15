@@ -54,6 +54,8 @@ export class UserGoalsService {
     const ingredient = await this.userGoalsRepository
       .createQueryBuilder('i')
       .leftJoinAndSelect('i.User', 'user')
+      .leftJoinAndSelect('i.userCondition', 'uc')
+      .leftJoinAndSelect('uc.condition', 'c')
       .leftJoinAndMapMany(
         'i.nutrients',
         Nutrients,
