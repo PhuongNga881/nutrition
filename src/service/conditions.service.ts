@@ -49,7 +49,6 @@ export class ConditionsService {
   //   );
   // }
   async update(id: number, input: ConditionUpdateDTO) {
-    const { isActive } = input;
     const condition = await this.conditionRepository.findOne({
       where: { id },
     });
@@ -57,7 +56,7 @@ export class ConditionsService {
       throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
     return await this.conditionRepository.save({
       ...condition,
-      isActive,
+      ...input,
     });
   }
   // async delete(input: ConditionDeleteDTO) {
