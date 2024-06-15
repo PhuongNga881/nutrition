@@ -9,9 +9,13 @@ export class IngredientsCreateDTO {
 
   fat: number;
 }
-
+export const getSkip = ({ page, take }): number => {
+  return (page - 1) * take;
+};
 export class IngredientsFilterDTO {
   name: string;
+  page: number;
+  take: number;
 }
 
 export class IngredientsDeleteDTO {

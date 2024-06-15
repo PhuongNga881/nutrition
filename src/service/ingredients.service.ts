@@ -7,6 +7,7 @@ import {
   IngredientsCreateDTO,
   IngredientsDeleteDTO,
   IngredientsFilterDTO,
+  getSkip,
 } from 'src/ingredients/dto/ingredients.dto';
 import moment from 'moment';
 import axios from 'axios';
@@ -60,7 +61,7 @@ export class IngredientsService {
     return ingredient;
   }
   async findAll(input: IngredientsFilterDTO) {
-    const { name } = input;
+    const { name, take, page } = input;
     const ingredient = await this.ingredientsRepository
       .createQueryBuilder('i')
       .leftJoinAndMapMany(
@@ -90,6 +91,8 @@ export class IngredientsService {
           ...(name ? { name: `%${name.toLowerCase()}%` } : {}),
         },
       )
+      .take(take)
+      .skip(getSkip({ page, take }))
       .getMany();
     return ingredient;
   }

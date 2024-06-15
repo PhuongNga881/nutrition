@@ -1,11 +1,9 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Patch,
-  Post,
   Query,
   UseGuards,
   UsePipes,
@@ -13,12 +11,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from 'src/guards/jwt.guard';
 import { ConditionsService } from 'src/service/conditions.service';
-import {
-  ConditionCreateDTO,
-  ConditionDeleteDTO,
-  ConditionFilterDTO,
-  ConditionUpdateDTO,
-} from './dto/condition.dto';
+import { ConditionFilterDTO, ConditionUpdateDTO } from './dto/condition.dto';
 
 @Controller('conditions')
 export class ConditionsController {
