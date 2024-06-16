@@ -16,6 +16,7 @@ import { AuthGuard } from 'src/guards/jwt.guard';
 
 import { MealService } from 'src/service/meal.service';
 import {
+  MealAddDishDTO,
   MealCreateDTO,
   MealDeleteDTO,
   MealFilterDTO,
@@ -70,6 +71,16 @@ export class MealsController {
     id: number,
   ) {
     return await this.mealService.update(id, note);
+  }
+  @UseGuards(AuthGuard)
+  @Post('/add-dish/:id')
+  async addDish(
+    @Body()
+    note: MealAddDishDTO,
+    @Param('id')
+    id: number,
+  ) {
+    return await this.mealService.addDish(id, note);
   }
   @UseGuards(AuthGuard)
   @Delete('/delete')

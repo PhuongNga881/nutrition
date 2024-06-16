@@ -6,8 +6,10 @@ import { Dished } from 'src/entity/Dished';
 import { Meals } from 'src/entity/Meal';
 import {
   CreateDishDto,
+  MealAddDishDTO,
   MealCreateDTO,
   MealDeleteDTO,
+  MealDeleteDishDTO,
   MealFilterDTO,
   MealUpdateDTO,
 } from 'src/meals/dto/meals.dto';
@@ -72,6 +74,43 @@ export class MealService {
       )
       .getMany();
     return ingredient;
+  }
+  public async addDish(id: number, input: MealAddDishDTO) {
+    const { dishesRecipe } = input;
+    const meal = await this.mealRepository.findOne({
+      where: { id },
+    });
+    if (!meal)
+      throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
+    const Di = await this.mealRecipeRepository.find({
+      where: { mealId: id },
+    });
+    await this.mealRecipeRepository.remove(Di);
+    const dishs = Di.map((di) => {
+      const { dishId: Id, Quantity: quantity } = di;
+      return { Id: Number(Id), quantity: Number(quantity) };
+    });
+
+    const inputDishes = dishesRecipe.map((dish) => ({
+      Id: Number(dish.Id),
+      quantity: Number(dish.quantity),
+    }));
+
+    const combinedDishes: CreateDishDto[] = [...dishs, ...inputDishes];
+
+    const uniqueDishes = combinedDishes.reduce((acc, current) => {
+      const existingDish = acc.find((item) => item.Id === current.Id);
+      if (!existingDish) {
+        return acc.concat([current]);
+      } else {
+        existingDish.quantity += current.quantity;
+        return acc;
+      }
+    }, []);
+    console.log(uniqueDishes);
+    await this.nutrientsRepository.delete({ objectId: id, type: Type.MEAL });
+    await this.calculateNutritionalInfo(id, uniqueDishes);
+    return await this.mealRepository.save({ ...meal, ...input });
   }
   public async calculateNutritionalInfo(
     mealId: number,
@@ -187,12 +226,12 @@ export class MealService {
   async delete(input: MealDeleteDTO) {
     const { id: ids } = input;
     if (ids?.length > 0) {
-      await this.mealRepository.delete(ids);
-      await this.mealRecipeRepository.delete({ dishId: In(ids) });
       await this.nutrientsRepository.delete({
         objectId: In(ids),
         type: Type.MEAL,
       });
+      await this.mealRecipeRepository.delete({ dishId: In(ids) });
+      await this.mealRepository.delete(ids);
     }
     return new HttpException('deleted', HttpStatus.GONE);
   }
