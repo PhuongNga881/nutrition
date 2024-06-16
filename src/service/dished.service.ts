@@ -39,6 +39,8 @@ export class DishedService {
     private flavonoidsRepository: Repository<Flavonoids>,
     @InjectRepository(TypeIntolerances)
     private intolerancesRepository: Repository<TypeIntolerances>,
+    @InjectRepository(Intolerances)
+    private intolerancesRRepository: Repository<Intolerances>,
   ) {}
 
   async findOne(id: number) {
@@ -73,19 +75,6 @@ export class DishedService {
         'f',
         'i.id = f.objectId and f.type = :type',
         { type: Type.DISH },
-      )
-      .leftJoinAndMapMany(
-        'i.typeIntolerances',
-        TypeIntolerances,
-        't',
-        'i.id = t.objectId and t.type = :type',
-        { type: Type.DISH },
-      )
-      .leftJoinAndMapMany(
-        'i.Intolerances',
-        Intolerances,
-        'it',
-        't.intolerancesId = it.id',
       )
       .where('i.id = :id ', { id: id })
       .getOne();
@@ -135,19 +124,6 @@ export class DishedService {
         'i.id = f.objectId and f.type = :type',
         { type: Type.DISH },
       )
-      .leftJoinAndMapMany(
-        'i.typeIntolerances',
-        TypeIntolerances,
-        't',
-        'i.id = t.objectId and t.type = :type',
-        { type: Type.DISH },
-      )
-      .leftJoinAndMapMany(
-        'i.Intolerances',
-        Intolerances,
-        'it',
-        't.intolerancesId = it.id',
-      )
       .where(
         `i.deleteAt is NULL 
         ${name ? ' and LOWER(i.name) like :name' : ''}
@@ -166,11 +142,11 @@ export class DishedService {
       .getMany();
     return ingredient;
   }
-  async getAllIntolerances() {
-    return await this.intolerancesRepository.createQueryBuilder('i').getMany();
-  }
+  // async getAllIntolerances() {
+  //   return await this.intolerancesRRepository.createQueryBuilder('i').getMany();
+  // }
   async createOne(input: DishCreateDTO, id: number) {
-    const { ingredients, UserId, intolerances } = input;
+    const { ingredients, UserId } = input;
     const dish = await this.dishRepository.save(
       this.dishRepository.create({
         ...input,
@@ -180,17 +156,17 @@ export class DishedService {
     const { id: dishId } = dish;
     await this.calculateNutritionalInfo(dishId, ingredients);
     //await this.
-    if (intolerances && intolerances.length > 0) {
-      for (const intolerancesId of intolerances) {
-        await this.intolerancesRepository.save(
-          this.intolerancesRepository.create({
-            intolerancesId,
-            objectId: dishId,
-            type: Type.DISH,
-          }),
-        );
-      }
-    }
+    // if (intolerances && intolerances.length > 0) {
+    //   for (const intolerancesId of intolerances) {
+    //     await this.intolerancesRepository.save(
+    //       this.intolerancesRepository.create({
+    //         intolerancesId,
+    //         objectId: dishId,
+    //         type: Type.DISH,
+    //       }),
+    //     );
+    //   }
+    // }
     return dish;
   }
   public async calculateNutritionalInfo(
