@@ -52,6 +52,16 @@ export class MealsController {
     return await this.mealService.calculateDailyNutrition(id, day);
   }
   @UseGuards(AuthGuard)
+  @Get('/get-nutrition-week/:ids')
+  async getNutritionWeek(@Param('id') id: number, @Body() week: string) {
+    return await this.mealService.calculateWeeklyNutrition(id, week);
+  }
+  @UseGuards(AuthGuard)
+  @Get('/get-nutrition-month/:ids')
+  async getNutritionMonth(@Param('id') id: number, @Body() month: string) {
+    return await this.mealService.calculateMonthlyNutrition(id, month);
+  }
+  @UseGuards(AuthGuard)
   @Patch('/update/:id')
   async update(
     @Body()

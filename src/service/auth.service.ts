@@ -8,6 +8,8 @@ import {
   UserCreateDTO,
   UserUpdateDTO,
   UsersDeleteDTO,
+  UsersFilterDTO,
+  getSkip,
 } from 'src/auth/dto/auth.dto';
 import { ConfigService } from '@nestjs/config';
 import { Address } from '@nestjs-modules/mailer/dist/interfaces/send-mail-options.interface';
@@ -45,13 +47,25 @@ export class AuthService {
   async findOne(id: number) {
     return await this.usersRepository.findOne({ where: { id } });
   }
-  async findAll() {
+  async findAll(input: UsersFilterDTO) {
+    const { take, page } = input;
     return await this.usersRepository
       .createQueryBuilder('u')
       .leftJoinAndSelect('u.goals', 'g')
       .leftJoinAndSelect('u.role', 'r')
       .leftJoinAndSelect('u.dishes', 'd')
+      .take(take)
+      .skip(getSkip({ page, take }))
       .getMany();
+  }
+  async getOne(id: number) {
+    return await this.usersRepository
+      .createQueryBuilder('u')
+      .leftJoinAndSelect('u.goals', 'g')
+      .leftJoinAndSelect('u.role', 'r')
+      .leftJoinAndSelect('u.dishes', 'd')
+      .where('i.id = :id', { id })
+      .getOne();
   }
   async updateUser(id: number, input: UserUpdateDTO) {
     const { password, userName, oldPassword } = input;

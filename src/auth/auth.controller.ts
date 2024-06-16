@@ -2,7 +2,9 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
+  Query,
   Request,
   UseGuards,
   UsePipes,
@@ -10,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from 'src/service/auth.service';
 import { AuthGuard } from 'src/guards/jwt.guard';
-import { UserCreateDTO } from './dto/auth.dto';
+import { UserCreateDTO, UsersFilterDTO } from './dto/auth.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -32,5 +34,19 @@ export class AuthController {
   ) {
     const { id } = req.user;
     return await this.authService.findOne(id);
+  }
+  @Get('/getOne/:id')
+  async getOne(
+    @Param('id')
+    id: any,
+  ) {
+    return await this.authService.getOne(id);
+  }
+  @Get('/getAll')
+  async getAll(
+    @Query()
+    input: UsersFilterDTO,
+  ) {
+    return await this.authService.findAll(input);
   }
 }
