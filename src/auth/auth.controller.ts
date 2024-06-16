@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Request,
@@ -12,7 +14,12 @@ import {
 } from '@nestjs/common';
 import { AuthService } from 'src/service/auth.service';
 import { AuthGuard } from 'src/guards/jwt.guard';
-import { UserCreateDTO, UsersFilterDTO } from './dto/auth.dto';
+import {
+  UserCreateDTO,
+  UserUpdateDTO,
+  UsersDeleteDTO,
+  UsersFilterDTO,
+} from './dto/auth.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -48,5 +55,21 @@ export class AuthController {
     input: UsersFilterDTO,
   ) {
     return await this.authService.findAll(input);
+  }
+  @Patch('/update/:id')
+  async update(
+    @Param('id')
+    id: any,
+    @Body()
+    input: UserUpdateDTO,
+  ) {
+    return await this.authService.updateUser(id, input);
+  }
+  @Delete('/delete')
+  async delete(
+    @Body()
+    input: UsersDeleteDTO,
+  ) {
+    return await this.authService.deletedUser(input);
   }
 }

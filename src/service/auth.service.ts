@@ -45,7 +45,11 @@ export class AuthService {
   ) {}
   hashPassword = async (password) => await bcrypt.hash(password, 10);
   async findOne(id: number) {
-    return await this.usersRepository.findOne({ where: { id } });
+    const user = await this.usersRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new HttpException('user does not exists', HttpStatus.BAD_REQUEST);
+    }
+    return user;
   }
   async findAll(input: UsersFilterDTO) {
     const { take, page } = input;
