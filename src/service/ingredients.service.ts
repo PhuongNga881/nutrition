@@ -16,6 +16,8 @@ import { Nutrients } from 'src/entity/Nutrients';
 import { Type } from 'src/enum/type.enum';
 import { WeightPerServing } from 'src/entity/WeightPerServing';
 import { CaloricBreakdown } from 'src/entity/CaloricBreakdown';
+import { Flavonoids } from 'src/entity/flavonoids';
+import { Properties } from 'src/entity/properties';
 @Injectable()
 export class IngredientsService {
   constructor(
@@ -23,6 +25,10 @@ export class IngredientsService {
     private ingredientsRepository: Repository<Ingredients>,
     @InjectRepository(Nutrients)
     private nutrientsRepository: Repository<Nutrients>,
+    @InjectRepository(Flavonoids)
+    private flavonoidsRepository: Repository<Flavonoids>,
+    @InjectRepository(Properties)
+    private propertiesRepository: Repository<Properties>,
     @InjectRepository(WeightPerServing)
     private weightPerServingRepository: Repository<WeightPerServing>,
     @InjectRepository(CaloricBreakdown)
@@ -85,8 +91,22 @@ export class IngredientsService {
         'i.id = n.objectId and n.type = :type',
         { type: Type.INGREDIENTS },
       )
+      .leftJoinAndMapMany(
+        'i.properties',
+        Properties,
+        'p',
+        'i.id = p.objectId and p.type = :type',
+        { type: Type.DISH },
+      )
+      .leftJoinAndMapMany(
+        'i.flavonoids',
+        Flavonoids,
+        'f',
+        'i.id = f.objectId and f.type = :type',
+        { type: Type.DISH },
+      )
       .where(
-        `deleteAt is NULL ${name ? 'and LOWER(i.name) like  :name' : ''}`,
+        `deleteAt is NULL ${name ? ' and LOWER(i.name) like  :name' : ''}`,
         {
           ...(name ? { name: `%${name.toLowerCase()}%` } : {}),
         },
@@ -104,11 +124,11 @@ export class IngredientsService {
   async getData() {
     const ingredients = await this.ingredientsRepository.find({
       select: ['code', 'id'],
-      where: { id: MoreThan(722) },
+      where: { id: MoreThan(714) },
     });
     const apiKey = this.configService.get<string>('API_KEY');
     if (ingredients.length > 0) {
-      for (let i = 0; i < 150; i++) {
+      for (let i = 0; i < 1; i++) {
         const { code, id: ingredientId } = ingredients[i];
         console.log(code);
         const url = `https://api.spoonacular.com/food/ingredients/${code}/information?apiKey=${apiKey}&amount=100&unit=grams`;
@@ -120,7 +140,13 @@ export class IngredientsService {
           .set({ original, originalName, image })
           .where('code = :id', { id })
           .execute();
-        const { nutrients, caloricBreakdown, weightPerServing } = nutrition;
+        const {
+          nutrients,
+          caloricBreakdown,
+          weightPerServing,
+          properties,
+          flavonoids,
+        } = nutrition;
         if (nutrients.length > 0) {
           for (const nutrient of nutrients) {
             await this.nutrientsRepository.save(
@@ -132,7 +158,29 @@ export class IngredientsService {
             );
           }
         }
-        console.log(caloricBreakdown);
+        // if (properties.length > 0) {
+        //   for (const propertie of properties) {
+        //     await this.propertiesRepository.save(
+        //       this.propertiesRepository.create({
+        //         ...propertie,
+        //         objectId: ingredientId,
+        //         type: Type.INGREDIENTS,
+        //       }),
+        //     );
+        //   }
+        // }
+        // if (flavonoids.length > 0) {
+        //   for (const flavonoid of flavonoids) {
+        //     await this.flavonoidsRepository.save(
+        //       this.flavonoidsRepository.create({
+        //         ...flavonoid,
+        //         objectId: ingredientId,
+        //         type: Type.INGREDIENTS,
+        //       }),
+        //     );
+        //   }
+        // }
+        // console.log(caloricBreakdown);
         if (caloricBreakdown) {
           await this.caloricBreakdownRepository.save(
             this.caloricBreakdownRepository.create({

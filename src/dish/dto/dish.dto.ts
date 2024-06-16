@@ -2,8 +2,9 @@ export class DishCreateDTO {
   name: string;
   isAll: boolean;
   Description: string;
-  userId: number;
+  UserId: number;
   ingredients: CreateIngredientDto[];
+  intolerances: string[];
 }
 export class DishUpdateDTO extends DishCreateDTO {}
 export class CreateIngredientDto {
@@ -11,9 +12,10 @@ export class CreateIngredientDto {
   quantity: number;
 }
 export class DishFilterDTO {
-  userId: number;
+  UserId: number;
   name: string;
   isAll: boolean;
+  intolerances: string[];
 }
 
 export class DishDeleteDTO {

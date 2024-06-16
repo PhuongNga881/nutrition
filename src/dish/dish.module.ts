@@ -18,6 +18,8 @@ import { Nutrients } from 'src/entity/Nutrients';
 import { WeightPerServing } from 'src/entity/WeightPerServing';
 import { Flavonoids } from 'src/entity/flavonoids';
 import { Properties } from 'src/entity/properties';
+import { TypeIntolerances } from 'src/entity/typeIntolerances';
+import { Intolerances } from 'src/entity/intolerances';
 @Module({
   controllers: [DishesController],
   providers: [DishedService],
@@ -36,6 +38,8 @@ import { Properties } from 'src/entity/properties';
       WeightPerServing,
       Flavonoids,
       Properties,
+      TypeIntolerances,
+      Intolerances,
     ]),
     ConfigModule,
     //BullModule.registerQueue({ name: 'send-mail' }),

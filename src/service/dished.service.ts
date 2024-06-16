@@ -17,6 +17,9 @@ import { Nutrients } from 'src/entity/Nutrients';
 import { Type } from 'src/enum/type.enum';
 import { WeightPerServing } from 'src/entity/WeightPerServing';
 import { Properties } from 'src/entity/properties';
+import { Flavonoids } from 'src/entity/flavonoids';
+import { TypeIntolerances } from 'src/entity/typeIntolerances';
+import { Intolerances } from 'src/entity/intolerances';
 @Injectable()
 export class DishedService {
   constructor(
@@ -32,20 +35,57 @@ export class DishedService {
     private ingredientsRepository: Repository<Ingredients>,
     @InjectRepository(DishIngredients)
     private dishIngredientsRepository: Repository<DishIngredients>,
+    @InjectRepository(Flavonoids)
+    private flavonoidsRepository: Repository<Flavonoids>,
+    @InjectRepository(TypeIntolerances)
+    private intolerancesRepository: Repository<TypeIntolerances>,
   ) {}
 
   async findOne(id: number) {
     const dish = await this.dishRepository
       .createQueryBuilder('i')
-      .leftJoin('i.dishIngredients', 'dishIngredient')
+      .leftJoinAndSelect('i.dishIngredients', 'dishIngredient')
       .leftJoinAndSelect('dishIngredient.Ingredient', 'Id')
-      .leftJoinAndSelect('i.userID', 'u')
       .leftJoinAndMapMany(
         'i.nutrients',
         Nutrients,
         'n',
         'i.id = n.objectId and n.type = :type',
         { type: Type.DISH },
+      )
+      .leftJoinAndMapMany(
+        'i.weightPerServing',
+        WeightPerServing,
+        'w',
+        'i.id = w.objectId and w.type = :type',
+        { type: Type.DISH },
+      )
+      .leftJoinAndMapMany(
+        'i.properties',
+        Properties,
+        'p',
+        'i.id = p.objectId and p.type = :type',
+        { type: Type.DISH },
+      )
+      .leftJoinAndMapMany(
+        'i.flavonoids',
+        Flavonoids,
+        'f',
+        'i.id = f.objectId and f.type = :type',
+        { type: Type.DISH },
+      )
+      .leftJoinAndMapMany(
+        'i.typeIntolerances',
+        TypeIntolerances,
+        't',
+        'i.id = t.objectId and t.type = :type',
+        { type: Type.DISH },
+      )
+      .leftJoinAndMapMany(
+        'i.Intolerances',
+        Intolerances,
+        'it',
+        't.intolerancesId = it.id',
       )
       .where('i.id = :id ', { id: id })
       .getOne();
@@ -54,7 +94,7 @@ export class DishedService {
     return dish;
   }
   async findAll(input: DishFilterDTO) {
-    const { name, userId, isAll } = input;
+    const { name, UserId, isAll, intolerances } = input;
     const ingredient = await this.dishRepository
       .createQueryBuilder('i')
       .leftJoinAndSelect(
@@ -81,14 +121,43 @@ export class DishedService {
         'i.id = w.objectId and w.type = :type',
         { type: Type.DISH },
       )
+      .leftJoinAndMapMany(
+        'i.properties',
+        Properties,
+        'p',
+        'i.id = p.objectId and p.type = :type',
+        { type: Type.DISH },
+      )
+      .leftJoinAndMapMany(
+        'i.flavonoids',
+        Flavonoids,
+        'f',
+        'i.id = f.objectId and f.type = :type',
+        { type: Type.DISH },
+      )
+      .leftJoinAndMapMany(
+        'i.typeIntolerances',
+        TypeIntolerances,
+        't',
+        'i.id = t.objectId and t.type = :type',
+        { type: Type.DISH },
+      )
+      .leftJoinAndMapMany(
+        'i.Intolerances',
+        Intolerances,
+        'it',
+        't.intolerancesId = it.id',
+      )
       .where(
         `i.deleteAt is NULL 
         ${name ? ' and LOWER(i.name) like :name' : ''}
-        ${userId ? ' and i.userID = :userId' : ''}
+        ${UserId ? ' and i.userID = :userId' : ''}
+         ${intolerances ? ' and it.id IN (:...intolerances)' : ''}
         ${isAll?.toString() === 'true' || isAll?.toString() === 'false' ? ' and i.isAll = :isAll' : ''}`,
         {
           ...(name ? { name: `%${name.toLowerCase()}%` } : {}),
-          ...(userId ? { userId } : {}),
+          ...(UserId ? { UserId } : {}),
+          ...(intolerances ? { intolerances } : {}),
           ...(isAll?.toString() === 'true' || isAll?.toString() === ' false'
             ? { isAll: isAll?.toString() === 'true' ? 1 : 0 }
             : {}),
@@ -98,16 +167,27 @@ export class DishedService {
     return ingredient;
   }
   async createOne(input: DishCreateDTO, id: number) {
-    const { ingredients, userId } = input;
+    const { ingredients, UserId, intolerances } = input;
     const dish = await this.dishRepository.save(
       this.dishRepository.create({
         ...input,
-        ...(userId ? { userID: userId } : { userID: id }),
+        ...(UserId ? { UserID: UserId } : { UserID: id }),
       }),
     );
     const { id: dishId } = dish;
     await this.calculateNutritionalInfo(dishId, ingredients);
     //await this.
+    if (intolerances && intolerances.length > 0) {
+      for (const intolerancesId of intolerances) {
+        await this.intolerancesRepository.save(
+          this.intolerancesRepository.create({
+            intolerancesId,
+            objectId: dishId,
+            type: Type.DISH,
+          }),
+        );
+      }
+    }
     return dish;
   }
   public async calculateNutritionalInfo(
@@ -122,6 +202,12 @@ export class DishedService {
       };
     } = {};
     const propertiesInfo: {
+      [key: string]: {
+        amount: number;
+        unit: string;
+      };
+    } = {};
+    const flavonoidsInfo: {
       [key: string]: {
         amount: number;
         unit: string;
@@ -163,6 +249,12 @@ export class DishedService {
             type: Type.INGREDIENTS,
           },
         });
+        const flavonoids = await this.flavonoidsRepository.find({
+          where: {
+            objectId: ingredientDto.ingredientId,
+            type: Type.INGREDIENTS,
+          },
+        });
         nutrients.forEach((nutrient) => {
           const { name, unit, amount, percentOfDailyNeeds } = nutrient;
           if (!nutritionalInfo[name]) {
@@ -179,7 +271,21 @@ export class DishedService {
           if (!propertiesInfo[name]) {
             propertiesInfo[name] = { amount: 0, unit };
           }
-          propertiesInfo[name].amount +=
+          if (name === 'Nutrition Score') {
+            propertiesInfo[name].amount =
+              Number(propertiesInfo[name].amount) + amount;
+            2;
+          } else {
+            propertiesInfo[name].amount +=
+              (amount * ingredientDto.quantity) / amountWeightPerServing;
+          }
+        });
+        flavonoids.forEach((pro) => {
+          const { name, unit, amount } = pro;
+          if (!flavonoidsInfo[name]) {
+            flavonoidsInfo[name] = { amount: 0, unit };
+          }
+          flavonoidsInfo[name].amount +=
             (amount * ingredientDto.quantity) / amountWeightPerServing;
         });
       }
@@ -205,6 +311,19 @@ export class DishedService {
       Object.entries(propertiesInfo).map(async ([name, { amount, unit }]) => {
         await this.propertiesRepository.save(
           this.propertiesRepository.create({
+            name,
+            amount,
+            unit,
+            objectId: dishId,
+            type: Type.DISH,
+          }),
+        );
+      }),
+    );
+    await Promise.all(
+      Object.entries(flavonoidsInfo).map(async ([name, { amount, unit }]) => {
+        await this.flavonoidsRepository.save(
+          this.flavonoidsRepository.create({
             name,
             amount,
             unit,
@@ -263,7 +382,21 @@ export class DishedService {
         type: Type.DISH,
       },
     });
+    const properties = await this.propertiesRepository.find({
+      where: {
+        objectId: id,
+        type: Type.DISH,
+      },
+    });
+    const flavonoids = await this.flavonoidsRepository.find({
+      where: {
+        objectId: id,
+        type: Type.DISH,
+      },
+    });
     await this.nutrientsRepository.remove(nutrient);
+    await this.flavonoidsRepository.remove(flavonoids);
+    await this.propertiesRepository.remove(properties);
     await this.calculateNutritionalInfo(id, ingredients);
     return await this.dishRepository.save({
       ...dish,
@@ -274,16 +407,19 @@ export class DishedService {
   async delete(input: DishDeleteDTO) {
     const { id: ids } = input;
     if (ids?.length > 0) {
-      await this.dishRepository.update(
-        {
-          id: In(ids),
-        },
-        {
-          deleteAt: moment().format(),
-        },
-      );
+      await this.dishRepository.delete({
+        id: In(ids),
+      });
       await this.dishIngredientsRepository.delete({ DishID: In(ids) });
       await this.nutrientsRepository.delete({
+        objectId: In(ids),
+        type: Type.DISH,
+      });
+      await this.flavonoidsRepository.delete({
+        objectId: In(ids),
+        type: Type.DISH,
+      });
+      await this.propertiesRepository.delete({
         objectId: In(ids),
         type: Type.DISH,
       });

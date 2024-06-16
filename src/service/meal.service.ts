@@ -9,7 +9,6 @@ import {
   MealAddDishDTO,
   MealCreateDTO,
   MealDeleteDTO,
-  MealDeleteDishDTO,
   MealFilterDTO,
   MealUpdateDTO,
 } from 'src/meals/dto/meals.dto';
@@ -17,6 +16,8 @@ import { MealRecipe } from 'src/entity/MealRecipe';
 import * as moment from 'moment';
 import { Nutrients } from 'src/entity/Nutrients';
 import { Type } from 'src/enum/type.enum';
+import { Properties } from 'src/entity/properties';
+import { Flavonoids } from 'src/entity/flavonoids';
 @Injectable()
 export class MealService {
   constructor(
@@ -28,6 +29,10 @@ export class MealService {
     private dishRepository: Repository<Dished>,
     @InjectRepository(Nutrients)
     private nutrientsRepository: Repository<Nutrients>,
+    @InjectRepository(Properties)
+    private propertiesRepository: Repository<Properties>,
+    @InjectRepository(Flavonoids)
+    private flavonoidsRepository: Repository<Flavonoids>,
   ) {}
 
   async findOne(id: number) {
@@ -40,7 +45,21 @@ export class MealService {
         Nutrients,
         'n',
         'i.id = n.objectId and n.type = :type',
-        { type: Type.DISH },
+        { type: Type.MEAL },
+      )
+      .leftJoinAndMapMany(
+        'i.properties',
+        Properties,
+        'p',
+        'i.id = p.objectId and p.type = :type',
+        { type: Type.MEAL },
+      )
+      .leftJoinAndMapMany(
+        'i.flavonoids',
+        Flavonoids,
+        'f',
+        'i.id = f.objectId and f.type = :type',
+        { type: Type.MEAL },
       )
       .where('i.id = :id', { id: id })
       .getOne();
@@ -59,7 +78,21 @@ export class MealService {
         Nutrients,
         'n',
         'i.id = n.objectId and n.type = :type',
-        { type: Type.DISH },
+        { type: Type.MEAL },
+      )
+      .leftJoinAndMapMany(
+        'i.properties',
+        Properties,
+        'p',
+        'i.id = p.objectId and p.type = :type',
+        { type: Type.MEAL },
+      )
+      .leftJoinAndMapMany(
+        'i.flavonoids',
+        Flavonoids,
+        'f',
+        'i.id = f.objectId and f.type = :type',
+        { type: Type.MEAL },
       )
       .where(
         `1=1
@@ -123,7 +156,18 @@ export class MealService {
         percentOfDailyNeeds: number;
       };
     } = {};
-
+    const propertiesInfo: {
+      [key: string]: {
+        amount: number;
+        unit: string;
+      };
+    } = {};
+    const flavonoidsInfo: {
+      [key: string]: {
+        amount: number;
+        unit: string;
+      };
+    } = {};
     const nutrientPromises = dishesRecipe.map(async (dishDto) => {
       const dish = await this.dishRepository.findOne({
         where: { id: dishDto.Id },
@@ -136,6 +180,18 @@ export class MealService {
             Quantity: dishDto.quantity,
           }),
         );
+        const properties = await this.propertiesRepository.find({
+          where: {
+            objectId: dish.id,
+            type: Type.DISH,
+          },
+        });
+        const flavonoids = await this.flavonoidsRepository.find({
+          where: {
+            objectId: dish.id,
+            type: Type.DISH,
+          },
+        });
         const nutrients = await this.nutrientsRepository.find({
           where: {
             objectId: dish.id,
@@ -150,6 +206,20 @@ export class MealService {
           nutritionalInfo[name].percentOfDailyNeeds +=
             percentOfDailyNeeds * dishDto.quantity;
           nutritionalInfo[name].amount += amount * dishDto.quantity;
+        });
+        properties.forEach((pro) => {
+          const { name, unit, amount } = pro;
+          if (!propertiesInfo[name]) {
+            propertiesInfo[name] = { amount: 0, unit };
+          }
+          propertiesInfo[name].amount += amount * dishDto.quantity;
+        });
+        flavonoids.forEach((pro) => {
+          const { name, unit, amount } = pro;
+          if (!flavonoidsInfo[name]) {
+            flavonoidsInfo[name] = { amount: 0, unit };
+          }
+          flavonoidsInfo[name].amount += amount * dishDto.quantity;
         });
       }
     });
@@ -169,6 +239,32 @@ export class MealService {
           );
         },
       ),
+    );
+    await Promise.all(
+      Object.entries(propertiesInfo).map(async ([name, { amount, unit }]) => {
+        await this.propertiesRepository.save(
+          this.propertiesRepository.create({
+            name,
+            amount,
+            unit,
+            objectId: mealId,
+            type: Type.MEAL,
+          }),
+        );
+      }),
+    );
+    await Promise.all(
+      Object.entries(flavonoidsInfo).map(async ([name, { amount, unit }]) => {
+        await this.flavonoidsRepository.save(
+          this.flavonoidsRepository.create({
+            name,
+            amount,
+            unit,
+            objectId: mealId,
+            type: Type.MEAL,
+          }),
+        );
+      }),
     );
     return nutritionalInfo;
   }
@@ -273,7 +369,12 @@ export class MealService {
         dateMeal: In(this.getDateRangeArray(startDate, endDate)),
       },
     });
-
+    const propertiesInfo: {
+      [key: string]: {
+        amount: number;
+        unit: string;
+      };
+    } = {};
     const nutritionalInfo: {
       [key: string]: {
         amount: number;
@@ -281,7 +382,12 @@ export class MealService {
         percentOfDailyNeeds: number;
       };
     } = {};
-
+    const flavonoidsInfo: {
+      [key: string]: {
+        amount: number;
+        unit: string;
+      };
+    } = {};
     for (const meal of meals) {
       const nutrients = await this.nutrientsRepository.find({
         where: {
@@ -289,7 +395,18 @@ export class MealService {
           type: Type.MEAL,
         },
       });
-
+      const properties = await this.propertiesRepository.find({
+        where: {
+          objectId: meal.id,
+          type: Type.MEAL,
+        },
+      });
+      const flavonoids = await this.flavonoidsRepository.find({
+        where: {
+          objectId: meal.id,
+          type: Type.MEAL,
+        },
+      });
       nutrients.forEach((nutrient) => {
         const { name, unit, amount, percentOfDailyNeeds } = nutrient;
         if (!nutritionalInfo[name]) {
@@ -298,9 +415,23 @@ export class MealService {
         nutritionalInfo[name].amount += amount;
         nutritionalInfo[name].percentOfDailyNeeds += percentOfDailyNeeds;
       });
+      properties.forEach((pro) => {
+        const { name, unit, amount } = pro;
+        if (!propertiesInfo[name]) {
+          propertiesInfo[name] = { amount: 0, unit };
+        }
+        propertiesInfo[name].amount += amount;
+      });
+      flavonoids.forEach((pro) => {
+        const { name, unit, amount } = pro;
+        if (!flavonoidsInfo[name]) {
+          flavonoidsInfo[name] = { amount: 0, unit };
+        }
+        flavonoidsInfo[name].amount += amount;
+      });
     }
 
-    return nutritionalInfo;
+    return { nutritionalInfo, propertiesInfo, flavonoidsInfo };
   }
 
   // Helper method to generate date range array

@@ -18,7 +18,7 @@ export class Dished {
   @Column({ name: 'name' })
   name: string;
   @Column('bigint', { name: 'UserID' })
-  userID: number;
+  UserID: number;
   @Column('bool', { name: 'is_all' })
   isAll: boolean;
   @Column({ name: 'calorie' })
