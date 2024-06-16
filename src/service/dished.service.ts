@@ -166,6 +166,9 @@ export class DishedService {
       .getMany();
     return ingredient;
   }
+  async getAllIntolerances() {
+    return await this.intolerancesRepository.createQueryBuilder('i').getMany();
+  }
   async createOne(input: DishCreateDTO, id: number) {
     const { ingredients, UserId, intolerances } = input;
     const dish = await this.dishRepository.save(

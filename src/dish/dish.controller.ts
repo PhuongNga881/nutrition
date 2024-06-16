@@ -46,6 +46,11 @@ export class DishesController {
     return await this.dishedService.findAll(input);
   }
   @UseGuards(AuthGuard)
+  @Get('/get-all-intolerances')
+  async getAllIntolerances() {
+    return await this.dishedService.getAllIntolerances();
+  }
+  @UseGuards(AuthGuard)
   @Patch('/update/:id')
   async update(
     @Body()
