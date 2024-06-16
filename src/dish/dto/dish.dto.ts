@@ -4,7 +4,6 @@ export class DishCreateDTO {
   Description: string;
   UserId: number;
   ingredients: CreateIngredientDto[];
-  intolerances: string[];
 }
 export class DishUpdateDTO extends DishCreateDTO {}
 export class CreateIngredientDto {
