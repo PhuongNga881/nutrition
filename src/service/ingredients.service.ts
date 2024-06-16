@@ -117,9 +117,28 @@ export class IngredientsService {
     return ingredient;
   }
   async createOne(input: IngredientsCreateDTO) {
-    return await this.ingredientsRepository.save(
+    const { nutrition, weightPerServing } = input;
+    const ingredient = await this.ingredientsRepository.save(
       this.ingredientsRepository.create({ ...input }),
     );
+    const { id: ingredientId } = ingredient;
+    for (const n of nutrition) {
+      await this.nutrientsRepository.save(
+        this.nutrientsRepository.create({
+          ...n,
+          objectId: ingredientId,
+          type: Type.INGREDIENTS,
+        }),
+      );
+    }
+    await this.weightPerServingRepository.save(
+      this.weightPerServingRepository.create({
+        ...weightPerServing,
+        objectId: ingredientId,
+        type: Type.INGREDIENTS,
+      }),
+    );
+    return ingredient;
   }
   async getData() {
     const ingredients = await this.ingredientsRepository.find({
@@ -240,6 +259,20 @@ export class IngredientsService {
     });
     if (!ingredient)
       throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
+    const { nutrition } = input;
+    await this.nutrientsRepository.delete({
+      objectId: id,
+      type: Type.INGREDIENTS,
+    });
+    for (const n of nutrition) {
+      await this.nutrientsRepository.save(
+        this.nutrientsRepository.create({
+          ...n,
+          objectId: id,
+          type: Type.INGREDIENTS,
+        }),
+      );
+    }
     return await this.ingredientsRepository
       .createQueryBuilder()
       .update(Ingredients)
@@ -250,14 +283,9 @@ export class IngredientsService {
   async delete(input: IngredientsDeleteDTO) {
     const { id: ids } = input;
     if (ids?.length > 0) {
-      await this.ingredientsRepository.update(
-        {
-          id: In(ids),
-        },
-        {
-          deletedAt: moment().format(),
-        },
-      );
+      await this.ingredientsRepository.delete({
+        id: In(ids),
+      });
     }
     return new HttpException('deleted', HttpStatus.GONE);
   }
