@@ -56,7 +56,7 @@ export class AuthService {
     return await this.usersRepository
       .createQueryBuilder('u')
       .leftJoinAndSelect('u.goals', 'g')
-      .leftJoinAndSelect('u.role', 'r')
+      .leftJoinAndSelect('u.roles', 'r')
       .leftJoinAndSelect('u.dishes', 'd')
       .take(take)
       .skip(getSkip({ page, take }))
