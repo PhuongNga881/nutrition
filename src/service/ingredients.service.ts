@@ -91,20 +91,20 @@ export class IngredientsService {
         'i.id = n.objectId and n.type = :type',
         { type: Type.INGREDIENTS },
       )
-      .leftJoinAndMapMany(
-        'i.properties',
-        Properties,
-        'p',
-        'i.id = p.objectId and p.type = :type',
-        { type: Type.DISH },
-      )
-      .leftJoinAndMapMany(
-        'i.flavonoids',
-        Flavonoids,
-        'f',
-        'i.id = f.objectId and f.type = :type',
-        { type: Type.DISH },
-      )
+      // .leftJoinAndMapMany(
+      //   'i.properties',
+      //   Properties,
+      //   'p',
+      //   'i.id = p.objectId and p.type = :type',
+      //   { type: Type.INGREDIENTS },
+      // )
+      // .leftJoinAndMapMany(
+      //   'i.flavonoids',
+      //   Flavonoids,
+      //   'f',
+      //   'i.id = f.objectId and f.type = :type',
+      //   { type: Type.INGREDIENTS },
+      // )
       .where(
         `deleteAt is NULL ${name ? ' and LOWER(i.name) like  :name' : ''}`,
         {
@@ -139,6 +139,46 @@ export class IngredientsService {
       }),
     );
     return ingredient;
+  }
+  async getName() {
+    return [
+      'Copper',
+      'Fat',
+      'Saturated Fat',
+      'Fiber',
+      'Vitamin D',
+      'Alcohol',
+      'Vitamin B3',
+      'Carbohydrates',
+      'Cholesterol',
+      'Poly Unsaturated Fat',
+      'Phosphorus',
+      'Sodium',
+      'Net Carbohydrates',
+      'Selenium',
+      'Magnesium',
+      'Zinc',
+      'Choline',
+      'Vitamin E',
+      'Manganese',
+      'Vitamin K',
+      'Calcium',
+      'Vitamin B6',
+      'Calories',
+      'Iron',
+      'Vitamin B2',
+      'Caffeine',
+      'Sugar',
+      'Lycopene',
+      'Protein',
+      'Vitamin B12',
+      'Mono Unsaturated Fat',
+      'Folic Acid',
+      'Potassium',
+      'Vitamin C',
+      'Vitamin B1',
+      'Folate',
+    ];
   }
   async getData() {
     const ingredients = await this.ingredientsRepository.find({

@@ -38,6 +38,10 @@ export class IngredientsController {
   async findAll(@Query() input: IngredientsFilterDTO) {
     return await this.ingredientsService.findAll(input);
   }
+  @Get('/getName')
+  async getName() {
+    return await this.ingredientsService.getName();
+  }
   @Get('/data')
   async getData() {
     return await this.ingredientsService.getData();
