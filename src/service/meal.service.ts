@@ -97,7 +97,7 @@ export class MealService {
       .where(
         `1=1
     ${name ? ' AND LOWER(i.name) LIKE :name' : ''}
-    ${userId ? ' AND userId = :userId' : ''}
+    ${userId ? ' AND i.userId = :userId' : ''}
     ${dateMeal ? ' AND i.dateMeal = :dateMeal' : ''}`,
         {
           ...(name ? { name: `%${name.toLowerCase()}%` } : {}),
