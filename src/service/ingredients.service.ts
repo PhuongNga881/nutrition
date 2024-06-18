@@ -303,8 +303,12 @@ export class IngredientsService {
     });
     if (!ingredient)
       throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
-    const { nutrition } = input;
+    const { nutrition, weightPerServing } = input;
     await this.nutrientsRepository.delete({
+      objectId: id,
+      type: Type.INGREDIENTS,
+    });
+    await this.weightPerServingRepository.delete({
       objectId: id,
       type: Type.INGREDIENTS,
     });
@@ -319,12 +323,16 @@ export class IngredientsService {
         );
       }
     }
-    return await this.ingredientsRepository
-      .createQueryBuilder()
-      .update(Ingredients)
-      .set(input)
-      .where('id = :id', { id: id })
-      .execute();
+    if (weightPerServing) {
+      await this.weightPerServingRepository.save(
+        this.weightPerServingRepository.create({
+          ...weightPerServing,
+          objectId: id,
+          type: Type.INGREDIENTS,
+        }),
+      );
+    }
+    return await this.ingredientsRepository.save({ ...ingredient, ...input });
   }
   async delete(input: IngredientsDeleteDTO) {
     const { id: ids } = input;
