@@ -122,22 +122,26 @@ export class IngredientsService {
       this.ingredientsRepository.create({ ...input }),
     );
     const { id: ingredientId } = ingredient;
-    for (const n of nutrition) {
-      await this.nutrientsRepository.save(
-        this.nutrientsRepository.create({
-          ...n,
+    if (nutrition && nutrition.length) {
+      for (const n of nutrition) {
+        await this.nutrientsRepository.save(
+          this.nutrientsRepository.create({
+            ...n,
+            objectId: ingredientId,
+            type: Type.INGREDIENTS,
+          }),
+        );
+      }
+    }
+    if (weightPerServing) {
+      await this.weightPerServingRepository.save(
+        this.weightPerServingRepository.create({
+          ...weightPerServing,
           objectId: ingredientId,
           type: Type.INGREDIENTS,
         }),
       );
     }
-    await this.weightPerServingRepository.save(
-      this.weightPerServingRepository.create({
-        ...weightPerServing,
-        objectId: ingredientId,
-        type: Type.INGREDIENTS,
-      }),
-    );
     return ingredient;
   }
   async getName() {
