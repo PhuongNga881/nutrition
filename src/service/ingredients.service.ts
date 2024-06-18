@@ -117,12 +117,12 @@ export class IngredientsService {
     return ingredient;
   }
   async createOne(input: IngredientsCreateDTO) {
-    const { nutrition, weightPerServing } = input;
+    const { nutrition, weightPerServing } = input || {};
     const ingredient = await this.ingredientsRepository.save(
       this.ingredientsRepository.create({ ...input }),
     );
     const { id: ingredientId } = ingredient;
-    if (nutrition && nutrition.length) {
+    if (nutrition && nutrition.length > 0) {
       for (const n of nutrition) {
         await this.nutrientsRepository.save(
           this.nutrientsRepository.create({
@@ -308,14 +308,16 @@ export class IngredientsService {
       objectId: id,
       type: Type.INGREDIENTS,
     });
-    for (const n of nutrition) {
-      await this.nutrientsRepository.save(
-        this.nutrientsRepository.create({
-          ...n,
-          objectId: id,
-          type: Type.INGREDIENTS,
-        }),
-      );
+    if (nutrition && nutrition.length > 0) {
+      for (const n of nutrition) {
+        await this.nutrientsRepository.save(
+          this.nutrientsRepository.create({
+            ...n,
+            objectId: id,
+            type: Type.INGREDIENTS,
+          }),
+        );
+      }
     }
     return await this.ingredientsRepository
       .createQueryBuilder()

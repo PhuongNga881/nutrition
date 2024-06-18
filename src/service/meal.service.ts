@@ -369,6 +369,8 @@ export class MealService {
         dateMeal: In(this.getDateRangeArray(startDate, endDate)),
       },
     });
+    console.log(this.getDateRangeArray(startDate, endDate));
+    console.log(meals);
     const propertiesInfo: {
       [key: string]: {
         amount: number;
@@ -395,6 +397,7 @@ export class MealService {
           type: Type.MEAL,
         },
       });
+
       const properties = await this.propertiesRepository.find({
         where: {
           objectId: meal.id,

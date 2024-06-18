@@ -26,6 +26,8 @@ export class UserGoals {
 
   @Column({ name: 'weight' })
   weight: number;
+  @Column({ name: 'height' })
+  height: number;
   @Column({ name: 'possible_pregnancy' })
   possiblePregnancy: number;
   @Column({ name: 'TEE' })
