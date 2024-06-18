@@ -17,6 +17,7 @@ import {
   UsersGoalsUpdateCondition,
 } from 'src/userGoals/dto/userGoals.dto';
 import { userConditions } from 'src/entity/UserConditions';
+import { Users } from 'src/entity/Users';
 @Injectable()
 export class UserGoalsService {
   constructor(
@@ -31,6 +32,8 @@ export class UserGoalsService {
     @InjectRepository(CaloricBreakdown)
     private caloricBreakdownRepository: Repository<CaloricBreakdown>,
     private readonly configService: ConfigService,
+    @InjectRepository(Users)
+    private usersRepository: Repository<Users>,
   ) {}
 
   async findOne(id: number) {
@@ -97,7 +100,7 @@ export class UserGoalsService {
     return { BMI, TEE, TDEE, BMR };
   }
   async createOne(input: UserGoalsCreateDTO) {
-    const { conditionIds } = input;
+    const { conditionIds, userId } = input;
     // const BMR =
     //   (weight ? weight * 10 : 0) +
     //   (height ? height * 6.25 : 0) -
@@ -117,6 +120,10 @@ export class UserGoalsService {
     //     TDEE = TEE ? TEE * 1.55 : 0;
     //   else if (exercise === EXERCISE.VERY_ACTIVE) TDEE = TEE ? TEE * 1.725 : 0;
     // }
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new HttpException('user does not exists', HttpStatus.BAD_REQUEST);
+    }
     let { BMR, BMI, TEE, TDEE } = await this.calculator(input);
     let nutrients = await this.createDataNutrients(input, TDEE);
     if (conditionIds) {
@@ -794,16 +801,21 @@ export class UserGoalsService {
     );
   }
   async updateCondition(id: number, input: UsersGoalsUpdateCondition) {
-    const { conditionIds } = input;
+    const { conditionIds, userId } = input;
     const userGoal = await this.userGoalsRepository.findOne({
       where: { id },
     });
     if (!userGoal)
       throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new HttpException('user does not exists', HttpStatus.BAD_REQUEST);
+    }
     await this.nutrientsRepository.delete({
       objectId: id,
       type: Type.USER_GOALS,
     });
+
     const { BMR, BMI, TEE } = await this.calculator(input);
     let { TDEE } = await this.calculator(input);
     let nutrients = await this.createDataNutrients(input, TDEE);
