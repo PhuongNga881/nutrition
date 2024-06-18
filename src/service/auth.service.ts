@@ -68,7 +68,7 @@ export class AuthService {
       .leftJoinAndSelect('u.goals', 'g')
       .leftJoinAndSelect('u.roles', 'r')
       .leftJoinAndSelect('u.dishes', 'd')
-      .where('i.id = :id', { id })
+      .where('u.id = :id', { id })
       .getOne();
   }
   async updateUser(id: number, input: UserUpdateDTO) {
