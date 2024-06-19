@@ -382,7 +382,7 @@ export class MealService {
         unit: string;
       };
     } = {};
-    const nutritionalInfo: {
+    let nutritionalInfo: {
       [key: string]: {
         amount: number;
         unit: string;
@@ -438,8 +438,31 @@ export class MealService {
         flavonoidsInfo[name].amount += Number(amount);
       });
     }
+    nutritionalInfo = await this.sortNutritionalInfo(nutritionalInfo);
 
     return { nutritionalInfo, propertiesInfo, flavonoidsInfo };
+  }
+  async sortNutritionalInfo(nutritionalInfo) {
+    const order = ['Calories', 'Carbohydrates', 'Fat', 'Protein'];
+    const sortedNutritionalInfo = {};
+
+    // First, add the nutrients in the specified order
+    order.forEach((nutrientName) => {
+      Object.keys(nutritionalInfo).forEach((key) => {
+        if (key.toLowerCase().includes(nutrientName.toLowerCase())) {
+          sortedNutritionalInfo[key] = nutritionalInfo[key];
+        }
+      });
+    });
+
+    // Then, add the remaining nutrients (including Vitamins)
+    Object.keys(nutritionalInfo).forEach((key) => {
+      if (!Object.keys(sortedNutritionalInfo).includes(key)) {
+        sortedNutritionalInfo[key] = nutritionalInfo[key];
+      }
+    });
+
+    return sortedNutritionalInfo;
   }
 
   // Helper method to generate date range array
