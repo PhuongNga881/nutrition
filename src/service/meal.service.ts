@@ -40,32 +40,37 @@ export class MealService {
       .createQueryBuilder('i')
       .leftJoinAndSelect('i.mealRecipe', 'mealRecipe')
       .leftJoinAndSelect('mealRecipe.dish', 'dish', 'dish.deleteAt is NULL')
-      .leftJoinAndMapMany(
-        'i.nutrients',
-        Nutrients,
-        'n',
-        'i.id = n.objectId and n.type = :type',
-        { type: Type.MEAL },
-      )
-      .leftJoinAndMapMany(
-        'i.properties',
-        Properties,
-        'p',
-        'i.id = p.objectId and p.type = :type',
-        { type: Type.MEAL },
-      )
-      .leftJoinAndMapMany(
-        'i.flavonoids',
-        Flavonoids,
-        'f',
-        'i.id = f.objectId and f.type = :type',
-        { type: Type.MEAL },
-      )
       .where('i.id = :id', { id: id })
       .getOne();
+
     if (!ingredient)
       throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
-    return ingredient;
+    let nutrient = await this.nutrientsRepository.find({
+      where: { objectId: id, type: Type.MEAL },
+    });
+    nutrient = await this.sortNutrients(nutrient);
+    return { ingredient, nutrient };
+  }
+  async sortNutrients(nutrients) {
+    const order = ['Calories', 'Carbohydrates', 'Fat', 'Protein'];
+    const sortedNutrients = [];
+
+    // First, push the nutrients that are in the order
+    order.forEach((nutrientName) => {
+      const nutrient = nutrients.find((n) => n.name === nutrientName);
+      if (nutrient) {
+        sortedNutrients.push(nutrient);
+      }
+    });
+
+    // Then, push the remaining nutrients
+    nutrients.forEach((nutrient) => {
+      if (!order.includes(nutrient.name)) {
+        sortedNutrients.push(nutrient);
+      }
+    });
+
+    return sortedNutrients;
   }
   async findAll(input: MealFilterDTO) {
     const { name, dateMeal, userId } = input;
