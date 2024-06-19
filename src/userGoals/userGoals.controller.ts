@@ -37,6 +37,11 @@ export class UserGoalsController {
     return await this.userGoalsService.findOne(id);
   }
   @UseGuards(AuthGuard)
+  @Get('/findOneByUser/:id')
+  async findOneByUserId(@Param('id') id: number) {
+    return await this.userGoalsService.findOneByUserId(id);
+  }
+  @UseGuards(AuthGuard)
   @Get('/findAll')
   async findAll(@Query() input: UserGoalsFilterDTO) {
     return await this.userGoalsService.findAll(input);

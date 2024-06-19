@@ -54,6 +54,9 @@ export class UserGoalsService {
       throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
     return userGoal;
   }
+  async findOneByUserId(id: number) {
+    return await this.userGoalsRepository.findOne({ where: { userId: id } });
+  }
   async findAll(input: UserGoalsFilterDTO) {
     const { userId, exercise } = input;
     const ingredient = await this.userGoalsRepository
