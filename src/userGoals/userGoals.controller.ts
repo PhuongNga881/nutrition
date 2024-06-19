@@ -59,7 +59,7 @@ export class UserGoalsController {
     @Param('id')
     id: number,
   ) {
-    return await this.userGoalsService.update(id, note);
+    return await this.userGoalsService.updateCondition(id, note);
   }
   @UseGuards(AuthGuard)
   @Delete('/delete')

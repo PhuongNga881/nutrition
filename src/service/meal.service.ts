@@ -415,7 +415,7 @@ export class MealService {
         if (!nutritionalInfo[name]) {
           nutritionalInfo[name] = { amount: 0, unit, percentOfDailyNeeds: 0 };
         }
-        nutritionalInfo[name].amount += amount;
+        nutritionalInfo[name].amount += Number(amount);
         nutritionalInfo[name].percentOfDailyNeeds += percentOfDailyNeeds;
       });
       properties.forEach((pro) => {
@@ -423,14 +423,14 @@ export class MealService {
         if (!propertiesInfo[name]) {
           propertiesInfo[name] = { amount: 0, unit };
         }
-        propertiesInfo[name].amount += amount;
+        propertiesInfo[name].amount += Number(amount);
       });
       flavonoids.forEach((pro) => {
         const { name, unit, amount } = pro;
         if (!flavonoidsInfo[name]) {
           flavonoidsInfo[name] = { amount: 0, unit };
         }
-        flavonoidsInfo[name].amount += amount;
+        flavonoidsInfo[name].amount += Number(amount);
       });
     }
 
