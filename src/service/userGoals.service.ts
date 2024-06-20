@@ -686,24 +686,46 @@ export class UserGoalsService {
     return nutrient;
   }
 
-  async changeByUser(userId, input: UsersGoalsUpdateByUser) {
-    const { changedNutrientName, newAmount } = input;
+  async changeByUser(id, input: UsersGoalsUpdateByUser) {
+    const { proteinAmount, fatAmount, carbohydratesAmount } = input;
     const userGoal = await this.userGoalsRepository.findOne({
-      where: { userId },
+      where: { id },
     });
     if (!userGoal)
       throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
-    const { id: userGoalId, TDEE } = userGoal;
-    const nutrient = await this.nutrientsRepository.find({
+    const { id: userGoalId } = userGoal;
+    const nutrients = await this.nutrientsRepository.find({
       where: { objectId: userGoalId, type: Type.USER_GOALS },
     });
-    await this.updateChangeByUser(
-      userGoalId,
-      nutrient,
-      changedNutrientName,
-      newAmount,
-      TDEE,
-    );
+    nutrients.forEach((nutrientItem) => {
+      if (nutrientItem.name === 'Carbohydrates') {
+        nutrientItem.amount = carbohydratesAmount;
+      }
+      if (nutrientItem.name === 'Protein') {
+        nutrientItem.amount = proteinAmount;
+      }
+      if (nutrientItem.name === 'Fat') {
+        nutrientItem.amount = fatAmount;
+      }
+    });
+    for (const nutrient of nutrients) {
+      await this.nutrientsRepository.save({
+        ...nutrient,
+        objectId: userGoalId,
+        type: Type.USER_GOALS,
+      });
+    }
+
+    // await this.updateChangeByUser(
+    //   userGoalId,
+    //   nutrient,
+    //   changedNutrientName,
+    //   newAmount,
+    //   TDEE,
+    // );
+    return await this.nutrientsRepository.find({
+      where: { objectId: userGoalId, type: Type.USER_GOALS },
+    });
   }
   async updateChangeByUser(
     id: number,
@@ -736,13 +758,9 @@ export class UserGoalsService {
     );
   }
   async adjustNutrients(TDEE, nutrient, changedNutrientName, newAmount) {
-    // Tính lượng calo của thành phần cần thay đổi
-    const changedCalories = newAmount * (changedNutrientName === 'Fat' ? 9 : 4); // Mỗi gram protein và carb cung cấp 4 calo, mỗi gram fat cung cấp 9 calo
-
-    // Tính tổng lượng calo của hai thành phần còn lại
+    const changedCalories = newAmount * (changedNutrientName === 'Fat' ? 9 : 4);
     const remainingCalories = TDEE - changedCalories;
 
-    // Tính tỷ lệ phần trăm calo của hai thành phần còn lại
     let ratio1 = 0;
     let ratio2 = 0;
     nutrient.forEach((nutrientItem) => {
@@ -753,12 +771,10 @@ export class UserGoalsService {
       }
     });
 
-    // Tính lượng calo và đổi thành gram của hai thành phần còn lại
     const newAmount1 =
       (remainingCalories * ratio1) / (changedNutrientName === 'Fat' ? 9 : 4);
     const newAmount2 = (remainingCalories * ratio2) / 4;
 
-    // Cập nhật lại lượng của hai thành phần còn lại
     nutrient.forEach((nutrientItem) => {
       if (nutrientItem.name !== changedNutrientName) {
         nutrientItem.amount =
@@ -766,7 +782,6 @@ export class UserGoalsService {
       }
     });
 
-    // Cập nhật lại lượng của thành phần cần thay đổi
     nutrient.forEach((nutrientItem) => {
       if (nutrientItem.name === changedNutrientName) {
         nutrientItem.amount = newAmount;

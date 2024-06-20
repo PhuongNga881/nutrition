@@ -7,7 +7,6 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -46,15 +45,14 @@ export class UserGoalsController {
   async findAll(@Query() input: UserGoalsFilterDTO) {
     return await this.userGoalsService.findAll(input);
   }
-  @Patch('/update-by-user')
+  @Patch('/update-by-user/:id')
   async changeByUser(
-    @Req()
-    req: any,
+    @Param('id')
+    id: number,
     @Body()
     input: UsersGoalsUpdateByUser,
   ) {
-    const { id: userId } = req.user;
-    return await this.userGoalsService.changeByUser(userId, input);
+    return await this.userGoalsService.changeByUser(id, input);
   }
   @UseGuards(AuthGuard)
   @Patch('/update/:id')

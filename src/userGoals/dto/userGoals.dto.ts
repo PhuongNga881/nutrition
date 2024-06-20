@@ -16,8 +16,9 @@ export class UserGoalsCreateDTO {
 }
 export class UsersGoalsUpdate extends UserGoalsCreateDTO {}
 export class UsersGoalsUpdateByUser {
-  changedNutrientName: string;
-  newAmount: number;
+  proteinAmount: number;
+  carbohydratesAmount: number;
+  fatAmount: number;
 }
 export class UsersGoalsUpdateCondition extends UserGoalsCreateDTO {}
 export class UserGoalsFilterDTO {
