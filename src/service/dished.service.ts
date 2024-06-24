@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import 'dotenv/config';
 import { Ingredients } from 'src/entity/Ingredients';
-import moment from 'moment';
 import { Dished } from 'src/entity/Dished';
 import {
   CreateIngredientDto,
@@ -20,6 +19,9 @@ import { Properties } from 'src/entity/properties';
 import { Flavonoids } from 'src/entity/flavonoids';
 import { TypeIntolerances } from 'src/entity/typeIntolerances';
 import { Intolerances } from 'src/entity/intolerances';
+import axios from 'axios';
+import { ConfigService } from '@nestjs/config';
+import { name } from 'ejs';
 @Injectable()
 export class DishedService {
   constructor(
@@ -41,6 +43,9 @@ export class DishedService {
     private intolerancesRepository: Repository<TypeIntolerances>,
     @InjectRepository(Intolerances)
     private intolerancesRRepository: Repository<Intolerances>,
+    private readonly configService: ConfigService,
+    @InjectRepository(WeightPerServing)
+    private weightPerServingRepository: Repository<WeightPerServing>,
   ) {}
 
   async findOne(id: number) {
@@ -408,5 +413,70 @@ export class DishedService {
       });
     }
     return new HttpException('deleted', HttpStatus.GONE);
+  }
+
+  async getData() {
+    const apiKey = this.configService.get<string>('API_KEY');
+    const dishs = await this.dishRepository.find({ select: ['code', 'id'] });
+    for (const dish of dishs) {
+      const { code: codeDish } = dish;
+      console.log(codeDish);
+      const url4 = `https://api.spoonacular.com/recipes/${codeDish}/ingredientWidget.json?&apiKey=${apiKey}`;
+      const data4 = await axios.get(url4);
+      const { ingredients: extendedIngredients } = data4?.data;
+      //console.log(title);
+      // await this.dishRepository.save({
+      //   ...dish,
+      //   name: title,
+      // });
+      for (const ingredientDish of extendedIngredients) {
+        const { name: nameIngredient } = ingredientDish;
+        console.log(nameIngredient);
+        const ingredient = await this.ingredientsRepository.findOne({
+          where: { name: nameIngredient },
+        });
+        if (!ingredient) {
+          const url = `https://api.spoonacular.com/food/ingredients/search?apiKey=${apiKey}&query=${nameIngredient}&number=1`;
+          const data1 = await axios.get(url);
+          const ingredientDataId = data1?.data?.results?.[0]?.id;
+          console.log(nameIngredient);
+          console.log(dish);
+          console.log('xhay', ingredientDataId);
+          const url1 = `https://api.spoonacular.com/food/ingredients/${ingredientDataId}/information?amount=100&unit=grams&apiKey=${apiKey}`;
+          const data2 = await axios.get(url1);
+          const { original, originalName, image, nutrition, name } =
+            data2?.data;
+          const ingredientCreate = await this.ingredientsRepository.save({
+            original,
+            originalName,
+            image,
+            name,
+          });
+          const { id: ingredientCreateId } = ingredientCreate;
+          const { nutrients, weightPerServing } = nutrition;
+
+          if (nutrients.length > 0) {
+            for (const nutrient of nutrients) {
+              await this.nutrientsRepository.save(
+                this.nutrientsRepository.create({
+                  ...nutrient,
+                  objectId: ingredientCreateId,
+                  type: Type.INGREDIENTS,
+                }),
+              );
+            }
+          }
+          if (weightPerServing) {
+            await this.weightPerServingRepository.save(
+              this.weightPerServingRepository.create({
+                ...weightPerServing,
+                objectId: ingredientCreateId,
+                type: Type.INGREDIENTS,
+              }),
+            );
+          }
+        }
+      }
+    }
   }
 }

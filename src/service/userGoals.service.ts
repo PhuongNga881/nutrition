@@ -14,6 +14,7 @@ import {
   UserGoalsFilterDTO,
   UsersGoalsUpdate,
   UsersGoalsUpdateByUser,
+  UsersGoalsUpdateByUserOld,
   UsersGoalsUpdateCondition,
 } from 'src/userGoals/dto/userGoals.dto';
 import { userConditions } from 'src/entity/UserConditions';
@@ -727,36 +728,102 @@ export class UserGoalsService {
       where: { objectId: userGoalId, type: Type.USER_GOALS },
     });
   }
-  async updateChangeByUser(
-    id: number,
-    nutrient,
-    changedNutrientName,
-    newAmount,
-    TDEE,
-  ) {
-    const userGoal = await this.userGoalsRepository.findOne({
-      where: { id },
-    });
-    if (!userGoal)
-      throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
-    await this.nutrientsRepository.delete({
-      objectId: id,
-      type: Type.USER_GOALS,
-    });
-    const nutrients = await this.adjustNutrients(
-      TDEE,
-      nutrient,
-      changedNutrientName,
-      newAmount,
-    );
-    await this.nutrientsRepository.save(
-      this.nutrientsRepository.create({
-        ...nutrients,
-        objectId: id,
-        type: Type.USER_GOALS,
-      }),
-    );
-  }
+  // async changeByUserOld(input: UsersGoalsUpdateByUserOld) {
+  //   // const { id, changedNutrientName, newAmount } = input;
+  //   // const userGoal = await this.userGoalsRepository.findOne({
+  //   //   where: { id },
+  //   // });
+  //   // if (!userGoal)
+  //   //   throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
+  //   // const { id: userGoalId, TDEE } = userGoal;
+  //   // const nutrients = await this.nutrientsRepository.find({
+  //   //   where: { objectId: userGoalId, type: Type.USER_GOALS },
+  //   // });
+  //   return await this
+  //     .updateChangeByUser
+  //     // userGoalId,
+  //     // nutrients,
+  //     // changedNutrientName,
+  //     // newAmount,
+  //     // TDEE,
+  //     ();
+  // }
+  // async updateChangeByUser() {
+  //   // TDEE, // newAmount, // changedNutrientName, // nutrient, // id: number,
+  //   // const userGoal = await this.userGoalsRepository.findOne({
+  //   //   where: { id },
+  //   // });
+  //   // if (!userGoal)
+  //   //   throw new HttpException('does not exists', HttpStatus.BAD_REQUEST);
+  //   // await this.nutrientsRepository.delete({
+  //   //   objectId: id,
+  //   //   type: Type.USER_GOALS,
+  //   // });
+  //   // const nutrients = await this.adjustNutrients(
+  //   //   TDEE,
+  //   //   nutrient,
+  //   //   changedNutrientName,
+  //   //   newAmount,
+  //   // );
+  //   // for (const n of nutrients) {
+  //   //   await this.nutrientsRepository.save({
+  //   //     ...n,
+  //   //     objectId: id,
+  //   //     type: Type.USER_GOALS,
+  //   //   });
+  //   // }
+  //   const totalCalories = 1400;
+  //   const currentProtein = 60; // gram
+  //   const currentCarbs = 200; // gram
+  //   const currentFat = 40; // gram
+  //   // tdee : 1400
+  //   // f:20-35  , c:45-65, p :10-30
+  //   //f:280-490   , c:630-910    , p:140-420
+  //   // f: 360 , c : 800 , p : 240 : 1400
+  //   //p1->420
+  //   //tong = if p1>p { p1-p = 420 -240 = 180 , 180/2 : 90, f: max(80)  : 90, c : max(170) : 90 -> f(360): max-90 , c:(800):max-90 -> f(280):10 , c(710): max (80)-> f(280) , c(720)  }
+  //   //th 1 tăng lên :
+
+  //   // tdee
+  //   // max min -> calo
+  //   //g : calo1 -caloOld : caolOld > calo1 -> caloOld -calo1 nguoc lại //200
+  //   // t1 :calo1>caloOld caloChange trừ đi  : f : 360 , p : 240 -> f : 360- 280 = (80) ,  c : 800-630 = (170) ,  calochange/2-80 = 0 -> c() 20  , calochange/2-170 = -> 70
+  //   // Thay đổi lượng protein từ 240 gram lên 420 gram
+  //   const result = await this.adjustNutrients1(
+  //     totalCalories,
+  //     currentProtein,
+  //     currentCarbs,
+  //     currentFat,
+  //     'protein',
+  //     80,
+  //   );
+  //   console.log(result);
+  // }
+  // tdee : 1400
+  // f:20-35  , c:45-65, p :10-30
+  //f:280-490   , c:630-910    , p:140-420
+  // f: 360 , c : 800 , p : 240 : 1400
+  //p1->420
+  //tong = if p1>p { p1-p = 420 -240 = 180 , 180/2 : 90, f: max(80)  : 90, c : max(170) : 90 -> f(360): max-90 , c:(800):max-90 -> f(280):10 , c(710): max (80)-> f(280) , c(720)  }
+  //th 1 tăng lên :
+
+  // tdee
+  // max min -> calo
+  //g : calo1 -caloOld : caolOld > calo1 -> caloOld -calo1 nguoc lại //200
+  // t1 :calo1>caloOld caloChange trừ đi  : f : 360 , p : 240 -> f : 360- 280 = (80) ,  c : 800-630 = (170) ,  calochange/2-80 = 0 -> c() 20  , calochange/2-170 = -> 70
+  //th2 :else caloChange cộng vào :
+  //f : , c : p :
+  // async adjustNutrients1(
+  //   TDEE,
+  //   currentProtein,
+  //   currentCarbs,
+  //   currentFat,
+  //   changedNutrient,
+  //   newAmount,
+  // ) {
+
+  // }
+
   async adjustNutrients(TDEE, nutrient, changedNutrientName, newAmount) {
     const changedCalories = newAmount * (changedNutrientName === 'Fat' ? 9 : 4);
     const remainingCalories = TDEE - changedCalories;
@@ -764,7 +831,12 @@ export class UserGoalsService {
     let ratio1 = 0;
     let ratio2 = 0;
     nutrient.forEach((nutrientItem) => {
-      if (nutrientItem.name !== changedNutrientName) {
+      if (
+        nutrientItem.name !== changedNutrientName &&
+        (nutrientItem.name === 'Fat' ||
+          nutrientItem.name === 'Carbohydrates' ||
+          nutrientItem.name === 'Protein')
+      ) {
         const caloriePerGram = nutrientItem.name === 'Fat' ? 9 : 4;
         ratio1 = (nutrientItem.amount * caloriePerGram) / remainingCalories;
         ratio2 = 1 - ratio1;

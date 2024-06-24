@@ -38,6 +38,11 @@ export class IngredientsController {
   async findAll(@Query() input: IngredientsFilterDTO) {
     return await this.ingredientsService.findAll(input);
   }
+  @UseGuards(AuthGuard)
+  @Get('/findAllName')
+  async findAllName(@Query() input: IngredientsFilterDTO) {
+    return await this.ingredientsService.findAllName(input);
+  }
   @Get('/getName')
   async getName() {
     return await this.ingredientsService.getName();

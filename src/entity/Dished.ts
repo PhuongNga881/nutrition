@@ -2,12 +2,9 @@ import {
   Column,
   DeleteDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Users } from './Users';
 import { DishIngredients } from './DishIngredients';
 import { MealRecipe } from './MealRecipe';
 @Entity('dishes')
@@ -21,8 +18,8 @@ export class Dished {
   UserID: number;
   @Column('bool', { name: 'is_all' })
   isAll: boolean;
-  @Column({ name: 'calorie' })
-  calorie: number;
+  @Column({ name: 'code' })
+  code: number;
 
   @Column({ name: 'protein' })
   protein: number;
@@ -35,9 +32,6 @@ export class Dished {
   @Column({ name: 'Description', nullable: true })
   Description: string;
 
-  @ManyToOne(() => Users, (user) => user.dishes, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'UserID', referencedColumnName: 'id' })
-  User: Users;
   @OneToMany(() => DishIngredients, (dishIngredient) => dishIngredient.Dish)
   dishIngredients: DishIngredients[];
   @OneToMany(() => MealRecipe, (mealRecipe) => mealRecipe.dish)

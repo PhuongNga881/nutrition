@@ -20,6 +20,11 @@ export class UsersGoalsUpdateByUser {
   carbohydratesAmount: number;
   fatAmount: number;
 }
+export class UsersGoalsUpdateByUserOld {
+  id: number;
+  changedNutrientName: string;
+  newAmount: number;
+}
 export class UsersGoalsUpdateCondition extends UserGoalsCreateDTO {}
 export class UserGoalsFilterDTO {
   userId: number;

@@ -68,7 +68,7 @@ export class IngredientsService {
   }
   async findAll(input: IngredientsFilterDTO) {
     const { name, take, page } = input;
-    const ingredient = await this.ingredientsRepository
+    let query = await this.ingredientsRepository
       .createQueryBuilder('i')
       .leftJoinAndMapMany(
         'i.caloricBreakdown',
@@ -110,10 +110,27 @@ export class IngredientsService {
         {
           ...(name ? { name: `%${name.toLowerCase()}%` } : {}),
         },
-      )
-      .take(take)
-      .skip(getSkip({ page, take }))
-      .getMany();
+      );
+    if (take && page) {
+      query = query.take(take).skip(getSkip({ page, take }));
+    }
+    const ingredient = query.getMany();
+    return ingredient;
+  }
+  async findAllName(input: IngredientsFilterDTO) {
+    const { name, take, page } = input;
+    let query = await this.ingredientsRepository
+      .createQueryBuilder('i')
+      .where(
+        `deleteAt is NULL ${name ? ' and LOWER(i.name) like  :name' : ''}`,
+        {
+          ...(name ? { name: `%${name.toLowerCase()}%` } : {}),
+        },
+      );
+    if (take && page) {
+      query = query.take(take).skip(getSkip({ page, take }));
+    }
+    const ingredient = query.getManyAndCount();
     return ingredient;
   }
   async createOne(input: IngredientsCreateDTO) {

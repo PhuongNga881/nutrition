@@ -19,6 +19,7 @@ import {
   UserGoalsFilterDTO,
   UsersGoalsUpdate,
   UsersGoalsUpdateByUser,
+  UsersGoalsUpdateByUserOld,
 } from './dto/userGoals.dto';
 
 @Controller('userGoals')
@@ -54,6 +55,13 @@ export class UserGoalsController {
   ) {
     return await this.userGoalsService.changeByUser(id, input);
   }
+  // @Patch('/update-by-user-old')
+  // async changeByUserOld(
+  //   @Body()
+  //   input: UsersGoalsUpdateByUserOld,
+  // ) {
+  //   return await this.userGoalsService.changeByUserOld(input);
+  // }
   @UseGuards(AuthGuard)
   @Patch('/update/:id')
   async update(
