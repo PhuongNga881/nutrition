@@ -57,7 +57,6 @@ export class AuthService {
       .createQueryBuilder('u')
       .leftJoinAndSelect('u.goals', 'g')
       .leftJoinAndSelect('u.roles', 'r')
-      .leftJoinAndSelect('u.dishes', 'd')
       .take(take)
       .skip(getSkip({ page, take }))
       .getMany();
@@ -67,7 +66,6 @@ export class AuthService {
       .createQueryBuilder('u')
       .leftJoinAndSelect('u.goals', 'g')
       .leftJoinAndSelect('u.roles', 'r')
-      .leftJoinAndSelect('u.dishes', 'd')
       .where('u.id = :id', { id })
       .getOne();
   }

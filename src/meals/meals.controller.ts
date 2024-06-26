@@ -21,7 +21,9 @@ import {
   MealDeleteDTO,
   MealFilterDTO,
   MealUpdateDTO,
+  NutritionDate,
 } from './dto/meals.dto';
+import { start } from 'repl';
 
 @Controller('meals')
 export class MealsController {
@@ -53,9 +55,9 @@ export class MealsController {
     return await this.mealService.calculateDailyNutrition(id, day);
   }
   @UseGuards(AuthGuard)
-  @Get('/get-nutrition-week/:ids')
-  async getNutritionWeek(@Param('id') id: number, @Body() week: string) {
-    return await this.mealService.calculateWeeklyNutrition(id, week);
+  @Get('/get-nutrition-week')
+  async getNutritionWeek(@Query() dateWeek: NutritionDate) {
+    return await this.mealService.calculateWeeklyNutrition(dateWeek);
   }
   @UseGuards(AuthGuard)
   @Get('/get-nutrition-month/:ids')

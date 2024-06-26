@@ -130,7 +130,7 @@ export class IngredientsService {
     if (take && page) {
       query = query.take(take).skip(getSkip({ page, take }));
     }
-    const ingredient = query.getManyAndCount();
+    const ingredient = query.getMany();
     return ingredient;
   }
   async createOne(input: IngredientsCreateDTO) {

@@ -21,6 +21,7 @@ import {
   UsersGoalsUpdateByUser,
   UsersGoalsUpdateByUserOld,
 } from './dto/userGoals.dto';
+import { NutritionDate } from 'src/meals/dto/meals.dto';
 
 @Controller('userGoals')
 export class UserGoalsController {
@@ -45,6 +46,11 @@ export class UserGoalsController {
   @Get('/findAll')
   async findAll(@Query() input: UserGoalsFilterDTO) {
     return await this.userGoalsService.findAll(input);
+  }
+  @UseGuards(AuthGuard)
+  @Get('/get-nutrition-week')
+  async getNutritionWeek(@Query() dateWeek: NutritionDate) {
+    return await this.userGoalsService.calculateWeeklyNutrition(dateWeek);
   }
   @Patch('/update-by-user/:id')
   async changeByUser(

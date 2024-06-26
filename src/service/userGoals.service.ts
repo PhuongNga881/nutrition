@@ -19,6 +19,7 @@ import {
 } from 'src/userGoals/dto/userGoals.dto';
 import { userConditions } from 'src/entity/UserConditions';
 import { Users } from 'src/entity/Users';
+import { NutritionDate } from 'src/meals/dto/meals.dto';
 @Injectable()
 export class UserGoalsService {
   constructor(
@@ -104,6 +105,73 @@ export class UserGoalsService {
       else if (exercise === EXERCISE.VERY_ACTIVE) TDEE = TEE ? TEE * 1.725 : 0;
     }
     return { BMI, TEE, TDEE, BMR };
+  }
+  private async calculateNutritionForWeek(
+    userId: number,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    const result = await this.userGoalsRepository.query(
+      'call GetMealByDate (?,?,?)',
+      [startDate, endDate, userId],
+    );
+    console.log(result[0]);
+    const meals = result[0];
+    let nutritionalInfo: {
+      [key: string]: {
+        amount: number;
+        unit: string;
+        percentOfDailyNeeds: number;
+      };
+    } = {};
+    for (const meal of meals) {
+      console.log(meal.ID);
+      const nutrients = await this.nutrientsRepository.find({
+        where: {
+          objectId: meal.ID,
+          type: Type.MEAL,
+        },
+      });
+      nutrients.forEach((nutrient) => {
+        const { name, unit, amount, percentOfDailyNeeds } = nutrient;
+        if (!nutritionalInfo[name]) {
+          nutritionalInfo[name] = { amount: 0, unit, percentOfDailyNeeds: 0 };
+        }
+        nutritionalInfo[name].amount += Number(amount);
+        nutritionalInfo[name].percentOfDailyNeeds +=
+          Number(percentOfDailyNeeds);
+      });
+    }
+    nutritionalInfo = await this.sortNutritionalInfo(nutritionalInfo);
+
+    return { nutritionalInfo };
+  }
+  async calculateWeeklyNutrition(dateWeek: NutritionDate) {
+    const { startDate, endDate, userId } = dateWeek;
+    return this.calculateNutritionForWeek(userId, startDate, endDate);
+  }
+
+  async sortNutritionalInfo(nutritionalInfo) {
+    const order = ['Calories', 'Carbohydrates', 'Fat', 'Protein'];
+    const sortedNutritionalInfo = {};
+
+    // First, add the nutrients in the specified order
+    order.forEach((nutrientName) => {
+      Object.keys(nutritionalInfo).forEach((key) => {
+        if (key.toLowerCase().includes(nutrientName.toLowerCase())) {
+          sortedNutritionalInfo[key] = nutritionalInfo[key];
+        }
+      });
+    });
+
+    // Then, add the remaining nutrients (including Vitamins)
+    Object.keys(nutritionalInfo).forEach((key) => {
+      if (!Object.keys(sortedNutritionalInfo).includes(key)) {
+        sortedNutritionalInfo[key] = nutritionalInfo[key];
+      }
+    });
+
+    return sortedNutritionalInfo;
   }
   async createOne(input: UserGoalsCreateDTO) {
     const { conditionIds, userId } = input;
@@ -228,16 +296,14 @@ export class UserGoalsService {
     const VitaminA = {
       name: 'Vitamin A',
       amount:
-        age >= 1 && age <= 3
-          ? 300
-          : age >= 4 && age <= 8
-            ? 400
-            : age >= 9 && age <= 13
-              ? 600
-              : age >= 14 && sex
-                ? 900
-                : 700,
-      unit: 'μg',
+        age >= 1 && age <= 8
+          ? 2000
+          : age >= 9 && age <= 13
+            ? 3000
+            : age >= 14 && sex
+              ? 3000
+              : 2333,
+      unit: 'IU',
       percentOfDailyNeeds: 100,
     };
     nutrient.push(VitaminA);
@@ -264,16 +330,14 @@ export class UserGoalsService {
     const VitaminD = {
       name: 'Vitamin D',
       amount:
-        age >= 1 && age <= 3
-          ? 600
-          : age >= 4 && age <= 8
-            ? 600
-            : age >= 9 && age <= 18
-              ? 600
-              : age >= 19 && age <= 70
-                ? 600
-                : 800,
-      unit: 'IU',
+        age >= 1
+          ? 10
+          : age >= 1 && age <= 18
+            ? 15
+            : age >= 19 && age <= 70
+              ? 15
+              : 20,
+      unit: 'mg',
       percentOfDailyNeeds: 100,
     };
     nutrient.push(VitaminD);
@@ -1197,7 +1261,7 @@ export class UserGoalsService {
         return { nutrients, TDEE };
       case 10:
         const calciumIncrease = 1200;
-        const vitaminDIncrease = 800;
+        const vitaminDIncrease = 20;
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Calcium') {
             nutrient.amount = Math.max(calciumIncrease, nutrient.amount); // Đảm bảo ít nhất là 1200 mg/ngày
@@ -1210,7 +1274,7 @@ export class UserGoalsService {
         return { nutrients, TDEE };
       case 11:
         const calciumRecommendedIntake = 1000;
-        const vitaminDRecommendedIntake = 600;
+        const vitaminDRecommendedIntake = 15;
 
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Calcium') {
@@ -1253,7 +1317,7 @@ export class UserGoalsService {
             nutrient.amount = Math.max(1000, nutrient.amount);
           }
           if (nutrient.name === 'Vitamin D') {
-            nutrient.amount = Math.max(600, nutrient.amount);
+            nutrient.amount = Math.max(15, nutrient.amount);
           }
           if (nutrient.name === 'Vitamin C') {
             nutrient.amount = Math.max(90, nutrient.amount);
@@ -1291,7 +1355,7 @@ export class UserGoalsService {
         return { nutrients, TDEE };
       case 14:
         const calciumRecommendedIntakeRA = 1200;
-        const vitaminDRecommendedIntakeRA = 800;
+        const vitaminDRecommendedIntakeRA = 20;
         const omega3AdditionRAarthritis = 1000;
 
         nutrients = nutrients.map((nutrient) => {
@@ -1327,7 +1391,7 @@ export class UserGoalsService {
 
         return { nutrients, TDEE };
       case 15:
-        const vitaminDRecommendedIntakeIBD = 800;
+        const vitaminDRecommendedIntakeIBD = 20;
         const ironRecommendedIntakeIBD = 18;
 
         nutrients = nutrients.map((nutrient) => {
@@ -1365,10 +1429,10 @@ export class UserGoalsService {
             );
           }
           if (nutrient.name === 'Vitamin A') {
-            nutrient.amount = Math.max(900, nutrient.amount);
+            nutrient.amount = Math.max(3000, nutrient.amount);
           }
           if (nutrient.name === 'Vitamin D') {
-            nutrient.amount = Math.max(800, nutrient.amount);
+            nutrient.amount = Math.max(20, nutrient.amount);
           }
           return nutrient;
         });
@@ -1408,7 +1472,7 @@ export class UserGoalsService {
               );
               break;
             case 'Vitamin D':
-              nutrient.amount = Math.max(1200, nutrient.amount);
+              nutrient.amount = Math.max(30, nutrient.amount);
               break;
             case 'Omega-3':
               nutrient.amount = Math.max(1000, nutrient.amount);
@@ -1508,19 +1572,19 @@ export class UserGoalsService {
           if (nutrient.name === 'Zinc') {
             nutrient.amount = Math.max(11, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminA') {
+          if (nutrient.name === 'Vitamin A') {
             nutrient.amount = Math.max(770, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminD') {
+          if (nutrient.name === 'Vitamin D') {
             nutrient.amount = Math.max(15, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminB6') {
+          if (nutrient.name === 'Vitamin B6') {
             nutrient.amount = Math.max(1.9, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminB12') {
+          if (nutrient.name === 'Vitamin B12') {
             nutrient.amount = Math.max(2.6, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminC ') {
+          if (nutrient.name === 'Vitamin C ') {
             nutrient.amount = Math.max(85, nutrient.amount);
           }
           if (nutrient.name === 'Protein') {
@@ -1565,22 +1629,22 @@ export class UserGoalsService {
           if (nutrient.name === 'Zinc') {
             nutrient.amount = Math.max(11, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminA') {
+          if (nutrient.name === 'Vitamin A') {
             nutrient.amount = Math.max(
               pregnancySecondVitaminA,
               nutrient.amount,
             );
           }
-          if (nutrient.name === 'VitaminD') {
+          if (nutrient.name === 'Vitamin D') {
             nutrient.amount = Math.max(15, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminB6') {
+          if (nutrient.name === 'Vitamin B6') {
             nutrient.amount = Math.max(1.9, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminB12') {
+          if (nutrient.name === 'Vitamin B12') {
             nutrient.amount = Math.max(2.6, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminC ') {
+          if (nutrient.name === 'Vitamin C') {
             nutrient.amount = Math.max(85, nutrient.amount);
           }
           if (nutrient.name === 'Protein') {
@@ -1611,19 +1675,19 @@ export class UserGoalsService {
           if (nutrient.name === 'Zinc') {
             nutrient.amount = Math.max(11, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminA') {
+          if (nutrient.name === 'Vitamin A') {
             nutrient.amount = Math.max(770, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminD') {
+          if (nutrient.name === 'Vitamin D') {
             nutrient.amount = Math.max(15, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminB6') {
+          if (nutrient.name === 'Vitamin B6') {
             nutrient.amount = Math.max(1.9, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminB12') {
+          if (nutrient.name === 'Vitamin B12') {
             nutrient.amount = Math.max(2.6, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminC ') {
+          if (nutrient.name === 'Vitamin C') {
             nutrient.amount = Math.max(85, nutrient.amount);
           }
           if (nutrient.name === 'Protein') {
@@ -1653,22 +1717,22 @@ export class UserGoalsService {
           if (nutrient.name === 'Zinc') {
             nutrient.amount = Math.max(12, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminA') {
+          if (nutrient.name === 'Vitamin A') {
             nutrient.amount = Math.max(1300, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminD') {
+          if (nutrient.name === 'Vitamin D') {
             nutrient.amount = Math.max(15, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminB6') {
+          if (nutrient.name === 'Vitamin B6') {
             nutrient.amount = Math.max(2, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminB12') {
+          if (nutrient.name === 'Vitamin B12') {
             nutrient.amount = Math.max(2.8, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminC ') {
+          if (nutrient.name === 'Vitamin C') {
             nutrient.amount = Math.max(120, nutrient.amount);
           }
-          if (nutrient.name === 'VitaminE ') {
+          if (nutrient.name === 'Vitamin E') {
             nutrient.amount = Math.max(19, nutrient.amount);
           }
           if (nutrient.name === 'Selenium ') {
@@ -1731,7 +1795,7 @@ export class UserGoalsService {
 
       case 26:
         const vitaminKRecommendedIntakeCirrhosis = 120;
-        const vitaminDRecommendedIntakeCirrhosis = 800;
+        const vitaminDRecommendedIntakeCirrhosis = 20;
 
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Vitamin K') {
@@ -1752,7 +1816,7 @@ export class UserGoalsService {
 
       case 27:
         const calciumRecommendedIntakeHyperthyroid = 1200;
-        const vitaminDRecommendedIntakeHyperthyroid = 800;
+        const vitaminDRecommendedIntakeHyperthyroid = 20;
 
         nutrients = nutrients.map((nutrient) => {
           if (nutrient.name === 'Calcium') {
@@ -1772,7 +1836,7 @@ export class UserGoalsService {
         return { nutrients, TDEE };
 
       case 28:
-        const vitaminDRecommendedIntakeMS = 800;
+        const vitaminDRecommendedIntakeMS = 20;
         const omega3AdditionMS = 1000;
 
         nutrients = nutrients.map((nutrient) => {
@@ -1803,7 +1867,7 @@ export class UserGoalsService {
         return { nutrients, TDEE };
 
       case 29:
-        const vitaminARecommendedIntakePancreatitis = 900;
+        const vitaminARecommendedIntakePancreatitis = 3000;
         const vitaminCRecommendedIntakePancreatitis = 90;
 
         nutrients = nutrients.map((nutrient) => {

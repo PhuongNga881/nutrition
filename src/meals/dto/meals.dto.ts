@@ -18,7 +18,11 @@ export class MealFilterDTO {
   name: string;
   dateMeal: Date;
 }
-
+export class NutritionDate {
+  userId: number;
+  startDate: Date;
+  endDate: Date;
+}
 export class MealDeleteDTO {
   id: string[];
 }

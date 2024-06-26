@@ -11,6 +11,7 @@ import {
   MealDeleteDTO,
   MealFilterDTO,
   MealUpdateDTO,
+  NutritionDate,
 } from 'src/meals/dto/meals.dto';
 import { MealRecipe } from 'src/entity/MealRecipe';
 import * as moment from 'moment';
@@ -345,12 +346,9 @@ export class MealService {
   }
 
   // New method to calculate weekly nutrition
-  async calculateWeeklyNutrition(userId: number, weekStartDate: string) {
-    return this.calculateNutritionForPeriod(
-      userId,
-      moment(weekStartDate),
-      moment(weekStartDate).add(1, 'weeks'),
-    );
+  async calculateWeeklyNutrition(dateWeek: NutritionDate) {
+    const { startDate, endDate, userId } = dateWeek;
+    return this.calculateNutritionForWeek(userId, startDate, endDate);
   }
 
   // New method to calculate monthly nutrition
@@ -360,6 +358,46 @@ export class MealService {
       moment(monthStartDate),
       moment(monthStartDate).add(1, 'months'),
     );
+  }
+  private async calculateNutritionForWeek(
+    userId: number,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    const result = await this.mealRepository.query(
+      'call GetMealByDate (?,?,?)',
+      [startDate, endDate, userId],
+    );
+    console.log(result[0]);
+    const meals = result[0];
+    let nutritionalInfo: {
+      [key: string]: {
+        amount: number;
+        unit: string;
+        percentOfDailyNeeds: number;
+      };
+    } = {};
+    for (const meal of meals) {
+      console.log(meal.ID);
+      const nutrients = await this.nutrientsRepository.find({
+        where: {
+          objectId: meal.ID,
+          type: Type.MEAL,
+        },
+      });
+      nutrients.forEach((nutrient) => {
+        const { name, unit, amount, percentOfDailyNeeds } = nutrient;
+        if (!nutritionalInfo[name]) {
+          nutritionalInfo[name] = { amount: 0, unit, percentOfDailyNeeds: 0 };
+        }
+        nutritionalInfo[name].amount += Number(amount);
+        nutritionalInfo[name].percentOfDailyNeeds +=
+          Number(percentOfDailyNeeds);
+      });
+    }
+    nutritionalInfo = await this.sortNutritionalInfo(nutritionalInfo);
+
+    return { nutritionalInfo };
   }
 
   // Helper method to calculate nutrition for a given period
