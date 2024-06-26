@@ -43,6 +43,11 @@ export class UserGoalsController {
     return await this.userGoalsService.findOneByUserId(id);
   }
   @UseGuards(AuthGuard)
+  @Get('/getWeekUser/:id')
+  async getWeekUse(@Param('id') id: number) {
+    return await this.userGoalsService.getWeekUser(id);
+  }
+  @UseGuards(AuthGuard)
   @Get('/findAll')
   async findAll(@Query() input: UserGoalsFilterDTO) {
     return await this.userGoalsService.findAll(input);

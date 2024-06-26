@@ -59,6 +59,32 @@ export class UserGoalsService {
   async findOneByUserId(id: number) {
     return await this.userGoalsRepository.findOne({ where: { userId: id } });
   }
+  async getWeekUser(id: number) {
+    const userGoal = await this.userGoalsRepository.findOne({
+      where: { userId: id },
+    });
+    const { id: userGoalId, TDEE } = userGoal;
+    const userNutrient = await this.nutrientsRepository.find({
+      where: { objectId: userGoalId, type: Type.USER_GOALS },
+    });
+    let nutritionalInfo: {
+      [key: string]: {
+        amount: number;
+        unit: string;
+      };
+    } = {};
+    nutritionalInfo['Calories'] = { amount: TDEE * 7, unit: 'Kcal' };
+    userNutrient.forEach((nutrient) => {
+      const { name, unit, amount } = nutrient;
+      if (!nutritionalInfo[name]) {
+        nutritionalInfo[name] = { amount: 0, unit };
+      }
+      nutritionalInfo[name].amount = Number(amount) * 7;
+    });
+    nutritionalInfo = await this.sortNutritionalInfo(nutritionalInfo);
+
+    return { nutritionalInfo };
+  }
   async findAll(input: UserGoalsFilterDTO) {
     const { userId, exercise } = input;
     const ingredient = await this.userGoalsRepository
