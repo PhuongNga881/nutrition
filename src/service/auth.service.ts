@@ -20,6 +20,7 @@ import { Users } from 'src/entity/Users';
 import { userConditions } from 'src/entity/UserConditions';
 import { Conditions } from 'src/entity/Conditions';
 import { UserGoals } from 'src/entity/UserGoals';
+import { MailerService } from '@nestjs-modules/mailer';
 // import { CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 // import * as cron from 'cron';
 export type sendEmailDTO = {
@@ -42,6 +43,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     @InjectRepository(UserGoals)
     private userGoalsRepository: Repository<UserGoals>,
+    private readonly mailerService: MailerService,
   ) {}
   hashPassword = async (password) => await bcrypt.hash(password, 10);
   async findOne(id: number) {
@@ -119,7 +121,20 @@ export class AuthService {
       return new HttpException('deleted', HttpStatus.GONE);
     }
   }
-
+  async sendMailReview() {
+    const users = await this.usersRepository.find();
+    for (const user of users) {
+      const { email, name } = user;
+      await this.mailerService.sendMail({
+        to: email,
+        subject: 'welcome',
+        template: './sendReview',
+        context: {
+          userName: name,
+        },
+      });
+    }
+  }
   async createOne(user: UserCreateDTO) {
     const { userName, password } = user;
     const checkUsername = await this.usersRepository.findOne({

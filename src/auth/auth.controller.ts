@@ -20,6 +20,7 @@ import {
   UsersDeleteDTO,
   UsersFilterDTO,
 } from './dto/auth.dto';
+import { Cron } from '@nestjs/schedule';
 
 @Controller('auth')
 export class AuthController {
@@ -48,6 +49,14 @@ export class AuthController {
     id: any,
   ) {
     return await this.authService.getOne(id);
+  }
+  @Cron('0 0 6 * * *', {
+    name: 'remind',
+    timeZone: 'Asia/Saigon',
+  })
+  @Get('/sendMail')
+  async sendMail() {
+    return await this.authService.sendMailReview();
   }
   @Get('/getAll')
   async getAll(
